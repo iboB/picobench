@@ -186,7 +186,25 @@ public:
 private:
     high_res_clock::time_point _start;
     int64_t _duration_ns = 0;
-    const int _iterations;
+    int _iterations;
+};
+
+// this can be used for manual measurement
+class scope
+{
+public:
+    scope(state& s)
+        : _state(s)
+    {
+        _state.start_timer();
+    }
+
+    ~scope()
+    {
+        _state.stop_timer();
+    }
+private:
+    state& _state;
 };
 
 typedef void(*benchmark_proc)(state&);
@@ -196,7 +214,9 @@ class benchmark
 public:
     const char* name() const { return _name; }
 
-    void iterations(std::vector<int> data) { _state_iterations = std::move(data); }
+    benchmark& iterations(std::vector<int> data) { _state_iterations = std::move(data); return *this; }
+    benchmark& samples(int n) { _samples = n; return *this; }
+    benchmark& iteration_label(const char* label) { _iteration_label = label; return *this; }
 
 private:
     friend class runner;
@@ -205,34 +225,46 @@ private:
 
     const char* const _name;
     const benchmark_proc _proc;
+    const char* _iteration_label = nullptr;
 
     std::vector<int> _state_iterations;
+    int _samples = 0;
 
     // state
-    std::vector<state> _states;
+    std::vector<state> _states; // length is _samples * _state_iterations.size()
     std::vector<state>::iterator _istate;
 };
-
-namespace internal
-{
-    // used for the PICOBENCH macro so we can add arguments with dot like so:
-    // PICOBENCH(func).iterations({100, 2000, 3000})
-    benchmark& p2r(benchmark* b)
-    {
-        return *b;
-    }
-}
 
 class runner
 {
 public:
+    runner();
+
     void run_benchmarks(int random_seed = -1);
 
     static benchmark& new_benchmark(const char* name, benchmark_proc proc);
 
+    void set_default_state_iterations(const std::vector<int>& data)
+    {
+        _default_state_iterations = data;
+    }
+
+    void set_default_samples(int n)
+    {
+        _default_samples = n;
+    }
+
 private:
     // global registration of all benchmarks
     static std::deque<std::unique_ptr<benchmark>>& benchmarks();
+
+    // default data
+
+    // default iterations per state per benchmark
+    std::vector<int> _default_state_iterations;
+
+    // default samples per benchmark
+    int _default_samples;
 };
 
 }
@@ -274,6 +306,12 @@ benchmark& runner::new_benchmark(const char* name, benchmark_proc proc)
     return *b;
 }
 
+runner::runner()
+    : _default_state_iterations({ 8, 64, 512, 4096, 8196 })
+    , _default_samples(1)
+{
+}
+
 void runner::run_benchmarks(int random_seed)
 {
     if (random_seed == -1)
@@ -294,19 +332,27 @@ void runner::run_benchmarks(int random_seed)
     }
 
     // initialize benchmarks
-    static std::vector<int> default_state_iterations = { 8, 64, 512, 4096, 8196 };
     for (auto b : benchmarks)
     {
         std::vector<int>& state_iterations =
             b->_state_iterations.empty() ?
-            default_state_iterations :
+            _default_state_iterations :
             b->_state_iterations;
+
+        if (b->_samples == 0)
+            b->_samples = _default_samples;
 
         b->_states.reserve(state_iterations.size());
 
+        // fill states while random shuffling them
         for (auto iters : state_iterations)
         {
-            b->_states.emplace_back(iters);
+            for (int i = 0; i < b->_samples; ++i)
+            {
+                auto index = rnd() % (b->_states.size() + 1);
+                auto pos = b->_states.begin() + index;
+                b->_states.emplace(pos, iters);
+            }
         }
 
         b->_istate = b->_states.begin();
@@ -337,10 +383,10 @@ void runner::run_benchmarks(int random_seed)
         for (auto& state : b->_states)
         {
             total_time += state.duration_ns();
-            total_iterations = state.iterations();
+            total_iterations += state.iterations();
         }
 
-        int64_t mean_time = total_time / total_iterations;
+        int64_t mean_time = total_time / (b->_samples * total_iterations);
 
         printf("%20s: %lld ns\n", b->name(), mean_time);
     }
