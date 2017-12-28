@@ -52,12 +52,14 @@
 // PICOBENCH(benchmark_my_function);
 //
 //
-//                  TESTS
+//                  TESTING
 //
-// The tests are included in the header file and use doctest (https://github.com/onqtam/doctest).
+// Some basic tests are included in this header file and use doctest (https://github.com/onqtam/doctest).
 // To run them, define PICOBENCH_TEST_WITH_DOCTEST before including
 // the header in a file which has doctest.h already included.
 //
+// More complex tests, which are not suitable for a single file are available
+// in picobench's official repo: https://github.com/iboB/picobench
 #pragma once
 
 #include <cstdint>
@@ -66,6 +68,8 @@
 
 #if defined(PICOBENCH_TEST_WITH_DOCTEST)
 #   define PICOBENCH_TEST
+#   define PICOBENCH_IMPLEMENT
+#   define private public
 #endif
 
 #if defined(PICOBENCH_DEBUG)
@@ -679,6 +683,12 @@ benchmark& registry::new_benchmark(const char* name, benchmark_proc proc)
     return *b;
 }
 
+int registry::set_test_suite(const char* name)
+{
+    runner::current_suite() = name;
+    return 0;
+}
+
 #if (defined(_MSC_VER) || defined(__MINGW32__)) && !defined(PICOBENCH_TEST)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -744,4 +754,108 @@ void this_thread_sleep_for(const std::chrono::duration<Rep, Period>& duration)
 
 }
 
+#endif
+
+#if defined(PICOBENCH_TEST_WITH_DOCTEST)
+
+#include <string>
+
+using namespace picobench;
+using namespace std;
+
+PICOBENCH_SUITE("test a");
+
+static void a_a(picobench::state& s)
+{
+    for (auto _ : s)
+    {
+        this_thread_sleep_for_ns(10);
+    }
+}
+PICOBENCH(a_a);
+
+static void a_b(picobench::state& s)
+{
+    for (auto _ : s)
+    {
+        this_thread_sleep_for_ns(11);
+    }
+}
+PICOBENCH(a_b);
+
+static void a_c(picobench::state& s)
+{
+    for (auto _ : s)
+    {
+        this_thread_sleep_for_ns(20);
+    }
+}
+PICOBENCH(a_c);
+
+PICOBENCH_SUITE("test empty");
+
+PICOBENCH_SUITE("test b");
+
+const report::suite& find_suite(const string& s, const report& r)
+{
+    for (auto& suite : r.suites)
+    {
+        if (s == suite.name)
+            return suite;
+    }
+
+    FAIL("missing suite" << s);
+    return r.suites.front(); // to avoid noreturn warning
+}
+
+TEST_CASE("[picobench] test")
+{
+    runner r;
+    auto report = r.run_benchmarks();
+
+    CHECK(report.suites.size() == 1);
+
+    auto& a = find_suite("test a", report);
+    CHECK(a.name == "test a");
+    CHECK(a.benchmarks.size() == 3);
+
+    auto& aa = a.benchmarks[0];
+    CHECK(aa.name == "a_a");
+    CHECK(aa.is_baseline);
+    CHECK(aa.data.size() == r._default_state_iterations.size());
+
+    for (size_t i = 0; i<aa.data.size(); ++i)
+    {
+        auto& d = aa.data[i];
+        CHECK(d.dimension == r._default_state_iterations[i]);
+        CHECK(d.samples == r._default_samples);
+        CHECK(d.total_time_ns == d.dimension * 10);
+    }
+
+    auto& ab = a.benchmarks[1];
+    CHECK(ab.name == "a_b");
+    CHECK(!ab.is_baseline);
+    CHECK(ab.data.size() == r._default_state_iterations.size());
+
+    for (size_t i=0; i<ab.data.size(); ++i)
+    {
+        auto& d = ab.data[i];
+        CHECK(d.dimension == r._default_state_iterations[i]);
+        CHECK(d.samples == r._default_samples);
+        CHECK(d.total_time_ns == d.dimension * 11);
+    }
+
+    auto& ac = a.benchmarks[2];
+    CHECK(ac.name == "a_c");
+    CHECK(!ac.is_baseline);
+    CHECK(ac.data.size() == r._default_state_iterations.size());
+
+    for (size_t i = 0; i<ac.data.size(); ++i)
+    {
+        auto& d = ac.data[i];
+        CHECK(d.dimension == r._default_state_iterations[i]);
+        CHECK(d.samples == r._default_samples);
+        CHECK(d.total_time_ns == d.dimension * 20);
+    }
+}
 #endif
