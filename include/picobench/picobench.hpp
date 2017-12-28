@@ -27,7 +27,7 @@
 //
 //                  VERSION HISTORY
 //
-//  0.01 (2017-12-22) Initial prototype release
+//  0.01 (2017-12-28) Initial prototype release
 //
 //
 //                  DOCUMENTATION
@@ -62,8 +62,6 @@
 
 #include <cstdint>
 #include <chrono>
-#include <deque>
-#include <memory>
 #include <vector>
 
 #if defined(PICOBENCH_TEST_WITH_DOCTEST)
@@ -216,19 +214,267 @@ public:
 
     benchmark& iterations(std::vector<int> data) { _state_iterations = std::move(data); return *this; }
     benchmark& samples(int n) { _samples = n; return *this; }
-    benchmark& iteration_label(const char* label) { _iteration_label = label; return *this; }
+    benchmark& label(const char* label) { _name = label; return *this; }
+    benchmark& baseline(bool b) { _baseline = b; return *this; }
 
-private:
+protected:
     friend class runner;
 
     benchmark(const char* name, benchmark_proc proc);
 
-    const char* const _name;
+    const char* _name;
     const benchmark_proc _proc;
-    const char* _iteration_label = nullptr;
+    bool _baseline = false;
 
     std::vector<int> _state_iterations;
     int _samples = 0;
+};
+
+class registry
+{
+public:
+    static int set_test_suite(const char* name);
+    static benchmark& new_benchmark(const char* name, benchmark_proc proc);
+};
+
+}
+
+#define _PICOBENCH_PP_CAT(a, b) _PICOBENCH_PP_INTERNAL_CAT(a, b)
+#define _PICOBENCH_PP_INTERNAL_CAT(a, b) a##b
+
+#define PICOBENCH_SUITE(name) \
+    static int _PICOBENCH_PP_CAT(picobench_suite, __LINE__) = \
+    picobench::registry::set_test_suite(name)
+
+#define PICOBENCH(func) \
+    static auto& _PICOBENCH_PP_CAT(picobench, __LINE__) = \
+    picobench::registry::new_benchmark(#func, func)
+
+#if defined PICOBENCH_IMPLEMENT_WITH_MAIN
+#   define PICOBENCH_IMPLEMENT
+#   define PICOBENCH_IMPLEMENT_MAIN
+#endif
+
+#if defined PICOBENCH_IMPLEMENT
+
+#include <random>
+#include <iostream>
+#include <iomanip>
+#include <deque>
+#include <unordered_map>
+#include <map>
+#include <memory>
+
+namespace picobench
+{
+
+struct report
+{
+    struct benchmark_problem_space
+    {
+        int dimension; // number of iterations for the problem space
+        int samples; // number of samples taken
+        int64_t total_time_ns; // average time per sample!!!
+    };
+    struct benchmark
+    {
+        const char* name;
+        bool is_baseline;
+        std::vector<benchmark_problem_space> data;
+    };
+
+    struct suite
+    {
+        const char* name;
+        std::vector<benchmark> benchmarks; // benchmark view
+    };
+
+    std::vector<suite> suites;
+
+    void to_text(std::ostream& out) const
+    {
+        using namespace std;
+        for (auto& suite : suites)
+        {
+            if (suite.name)
+            {
+                out << suite.name << ":\n";
+            }
+
+            line(out);
+            out <<
+                "   Name (baseline is *)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n";
+            line(out);
+
+            auto problem_space_view = get_problem_space_view(suite);
+            for (auto& ps : problem_space_view)
+            {
+                const problem_space_benchmark* baseline = nullptr;
+                for (auto& bm : ps.second)
+                {
+                    if (bm.is_baseline)
+                    {
+                        baseline = &bm;
+                        break;
+                    }
+                }
+
+                for (auto& bm : ps.second)
+                {
+                    if (bm.is_baseline)
+                    {
+                        out << setw(23) << bm.name << " *";
+                    }
+                    else
+                    {
+                        out << setw(25) << bm.name;
+                    }
+
+                    out << " |"
+                        << setw(8) << ps.first << " |"
+                        << setw(10) << fixed << setprecision(3) << double(bm.total_time_ns) / 1000000.0 << " |"
+                        << setw(8) << (bm.total_time_ns / ps.first) << " |";
+
+                    if (baseline == &bm)
+                    {
+                        out << "      - |";
+                    }
+                    else if(baseline)
+                    {
+                        out << setw(7) << fixed << setprecision(3)
+                            << double(bm.total_time_ns) / double(baseline->total_time_ns) << " |";
+                    }
+                    else
+                    {
+                        out << "    ??? |";
+                    }
+
+                    auto ops_per_sec = ps.first * (1000000000.0 / double(bm.total_time_ns));
+                    out << setw(11) << fixed << setprecision(1) << ops_per_sec << "\n";
+                }
+            }
+            line(out);
+        }
+    }
+
+    void to_text_concise(std::ostream& out)
+    {
+        using namespace std;
+        for (auto& suite : suites)
+        {
+            if (suite.name)
+            {
+                out << suite.name << ":\n";
+            }
+
+            line(out);
+
+            out <<
+                "   Name (baseline is *)   |  ns/op  | Baseline |  Ops/second\n";
+
+            line(out);
+
+            const benchmark* baseline = nullptr;
+            for (auto& bm : suite.benchmarks)
+            {
+                if (bm.is_baseline)
+                {
+                    baseline = &bm;
+                    break;
+                }
+            }
+            _PICOBENCH_ASSERT(baseline);
+            int64_t baseline_total_time = 0;
+            int baseline_total_iterations = 0;
+            for (auto& d : baseline->data)
+            {
+                baseline_total_time += d.total_time_ns;
+                baseline_total_iterations += d.dimension;
+            }
+            int64_t baseline_ns_per_op = baseline_total_time / baseline_total_iterations;
+
+            for (auto& bm : suite.benchmarks)
+            {
+                if (bm.is_baseline)
+                {
+                    out << setw(23) << bm.name << " *";
+                }
+                else
+                {
+                    out << setw(25) << bm.name;
+                }
+
+                int64_t total_time = 0;
+                int total_iterations = 0;
+                for (auto& d : bm.data)
+                {
+                    total_time += d.total_time_ns;
+                    total_iterations += d.dimension;
+                }
+                int64_t ns_per_op = total_time / total_iterations;
+
+                out << " |" << setw(8) << ns_per_op << " |";
+
+                if (&bm == baseline)
+                {
+                    out << "        - |";
+                }
+                else
+                {
+                    out << setw(9) << fixed << setprecision(3)
+                        << double(ns_per_op) / double(baseline_ns_per_op) << " |";
+                }
+
+                auto ops_per_sec = total_iterations * (1000000000.0 / double(total_time));
+                out << setw(12) << fixed << setprecision(1) << ops_per_sec << "\n";
+            }
+
+            line(out);
+        }
+    }
+
+    void to_csv(std::ostream& out) const
+    {}
+
+private:
+
+    static void line(std::ostream& out)
+    {
+        for (int i = 0; i < 80; ++i) out.put('_');
+        out.put('\n');
+    }
+
+    struct problem_space_benchmark
+    {
+        const char* name;
+        bool is_baseline;
+        int64_t total_time_ns; // average time per sample!!!
+    };
+
+    static std::map<int, std::vector<problem_space_benchmark>> get_problem_space_view(const suite& s)
+    {
+        std::map<int, std::vector<problem_space_benchmark>> res;
+        for (auto& bm : s.benchmarks)
+        {
+            for (auto& d : bm.data)
+            {
+                auto& pvbs = res[d.dimension];
+                pvbs.push_back({ bm.name, bm.is_baseline, d.total_time_ns });
+            }
+        }
+        return res;
+    }
+};
+
+class benchmark_impl : public benchmark
+{
+public:
+    benchmark_impl(const char* name, benchmark_proc proc)
+        : benchmark(name, proc)
+    {}
+
+private:
+    friend class runner;
 
     // state
     std::vector<state> _states; // length is _samples * _state_iterations.size()
@@ -238,11 +484,146 @@ private:
 class runner
 {
 public:
-    runner();
+    runner()
+        : _default_state_iterations({ 8, 64, 512, 4096, 8196 })
+        , _default_samples(1)
+    {}
 
-    void run_benchmarks(int random_seed = -1);
+    report run_benchmarks(int random_seed = -1)
+    {
+        if (random_seed == -1)
+        {
+            random_seed = std::random_device()();
+        }
 
-    static benchmark& new_benchmark(const char* name, benchmark_proc proc);
+        std::minstd_rand rnd(random_seed);
+
+        auto& registered_suites = suites();
+
+        // vector of all benchmarks
+        std::vector<benchmark_impl*> benchmarks;
+        for (auto& suite : registered_suites)
+        {
+            // also identify a baseline in this loop
+            // if there is no explicit one, set the first one as a baseline
+            bool found_baseline = false;
+            for (auto& rb : suite.second)
+            {
+                benchmarks.push_back(rb.get());
+                if (rb->_baseline)
+                {
+                    found_baseline = true;
+                }
+            }
+
+            if (!found_baseline && !suite.second.empty())
+            {
+                suite.second.front()->_baseline = true;
+            }
+        }
+
+        // initialize benchmarks
+        for (auto b : benchmarks)
+        {
+            std::vector<int>& state_iterations =
+                b->_state_iterations.empty() ?
+                _default_state_iterations :
+                b->_state_iterations;
+
+            if (b->_samples == 0)
+                b->_samples = _default_samples;
+
+            b->_states.reserve(state_iterations.size());
+
+            // fill states while random shuffling them
+            for (auto iters : state_iterations)
+            {
+                for (int i = 0; i < b->_samples; ++i)
+                {
+                    auto index = rnd() % (b->_states.size() + 1);
+                    auto pos = b->_states.begin() + index;
+                    b->_states.emplace(pos, iters);
+                }
+            }
+
+            b->_istate = b->_states.begin();
+        }
+
+        // we run a random benchmark from it incrementing _istate for each
+        // when _istate reaches _states.end(), we erase the benchmark
+        // when the vector becomes empty, we're done
+        while (!benchmarks.empty())
+        {
+            auto i = benchmarks.begin() + (rnd() % benchmarks.size());
+            auto& b = *i;
+
+            b->_proc(*b->_istate);
+
+            ++b->_istate;
+
+            if (b->_istate == b->_states.end())
+            {
+                benchmarks.erase(i);
+            }
+        }
+
+        // generate report
+        report rpt;
+
+        rpt.suites.resize(registered_suites.size());
+        auto rpt_suite = rpt.suites.begin();
+
+        for (auto& suite : registered_suites)
+        {
+            rpt_suite->name = suite.first;
+
+            // build benchmark view
+            rpt_suite->benchmarks.resize(suite.second.size());
+            auto rpt_benchmark = rpt_suite->benchmarks.begin();
+
+            for(auto& b : suite.second)
+            {
+                rpt_benchmark->name = b->_name;
+                rpt_benchmark->is_baseline = b->_baseline;
+
+                std::vector<int>& state_iterations =
+                    b->_state_iterations.empty() ?
+                    _default_state_iterations :
+                    b->_state_iterations;
+
+                rpt_benchmark->data.reserve(state_iterations.size());
+                for (auto d : state_iterations)
+                {
+                    rpt_benchmark->data.push_back({ d, 0, 0ll });
+                }
+
+                for (auto& state : b->_states)
+                {
+                    for (auto& d : rpt_benchmark->data)
+                    {
+                        if (state.iterations() == d.dimension)
+                        {
+                            d.total_time_ns += state.duration_ns();
+                            ++d.samples;
+                        }
+                    }
+                }
+
+                // average-out samples
+                for (auto& d : rpt_benchmark->data)
+                {
+                    _PICOBENCH_ASSERT(d.samples == b->_samples);
+                    d.total_time_ns /= d.samples;
+                }
+
+                ++rpt_benchmark;
+            }
+
+            ++rpt_suite;
+        }
+
+        return rpt;
+    }
 
     void set_default_state_iterations(const std::vector<int>& data)
     {
@@ -255,8 +636,27 @@ public:
     }
 
 private:
+    friend class registry;
+
     // global registration of all benchmarks
-    static std::deque<std::unique_ptr<benchmark>>& benchmarks();
+    using benchmarks_vector = std::deque<std::unique_ptr<benchmark_impl>>;
+    using suite_map = std::unordered_map<const char*, benchmarks_vector>;
+    static suite_map& suites()
+    {
+        static suite_map b;
+        return b;
+    }
+
+    static const char*& current_suite()
+    {
+        static const char* s = nullptr;
+        return s;
+    }
+
+    static benchmarks_vector& benchmarks_for_current_suite()
+    {
+        return suites()[current_suite()];
+    }
 
     // default data
 
@@ -267,129 +667,16 @@ private:
     int _default_samples;
 };
 
-}
-
-#define _PICOBENCH_PP_CAT(a, b) _PICOBENCH_PP_INTERNAL_CAT(a, b)
-#define _PICOBENCH_PP_INTERNAL_CAT(a, b) a##b
-
-#define PICOBENCH(func) static auto& _PICOBENCH_PP_CAT(picobench, __LINE__) = \
-    picobench::runner::new_benchmark(#func, func)
-
-#if defined PICOBENCH_IMPLEMENT_WITH_MAIN
-#   define PICOBENCH_IMPLEMENT
-#   define PICOBENCH_IMPLEMENT_MAIN
-#endif
-
-#if defined PICOBENCH_IMPLEMENT
-
-#include <random>
-#include <cstdio>
-
-namespace picobench
-{
-
 benchmark::benchmark(const char* name, benchmark_proc proc)
     : _name(name)
     , _proc(proc)
 {}
 
-std::deque<std::unique_ptr<benchmark>>& runner::benchmarks()
+benchmark& registry::new_benchmark(const char* name, benchmark_proc proc)
 {
-    static std::deque<std::unique_ptr<benchmark>> b;
-    return b;
-}
-
-benchmark& runner::new_benchmark(const char* name, benchmark_proc proc)
-{
-    auto b = new benchmark(name, proc);
-    benchmarks().emplace_back(b);
+    auto b = new benchmark_impl(name, proc);
+    runner::benchmarks_for_current_suite().emplace_back(b);
     return *b;
-}
-
-runner::runner()
-    : _default_state_iterations({ 8, 64, 512, 4096, 8196 })
-    , _default_samples(1)
-{
-}
-
-void runner::run_benchmarks(int random_seed)
-{
-    if (random_seed == -1)
-    {
-        random_seed = std::random_device()();
-    }
-
-    std::minstd_rand rnd(random_seed);
-
-    auto& registered_benchmarks = benchmarks();
-
-    // vector of all benchmarks
-    std::vector<benchmark*> benchmarks;
-    benchmarks.reserve(registered_benchmarks.size());
-    for (auto& rb : registered_benchmarks)
-    {
-        benchmarks.push_back(rb.get());
-    }
-
-    // initialize benchmarks
-    for (auto b : benchmarks)
-    {
-        std::vector<int>& state_iterations =
-            b->_state_iterations.empty() ?
-            _default_state_iterations :
-            b->_state_iterations;
-
-        if (b->_samples == 0)
-            b->_samples = _default_samples;
-
-        b->_states.reserve(state_iterations.size());
-
-        // fill states while random shuffling them
-        for (auto iters : state_iterations)
-        {
-            for (int i = 0; i < b->_samples; ++i)
-            {
-                auto index = rnd() % (b->_states.size() + 1);
-                auto pos = b->_states.begin() + index;
-                b->_states.emplace(pos, iters);
-            }
-        }
-
-        b->_istate = b->_states.begin();
-    }
-
-    // we run a random benchmark from it incrementing _istate for each
-    // when _istate reaches _states.end(), we erase the benchmark
-    // when the vector becomes empty, we're done
-    while (!benchmarks.empty())
-    {
-        auto i = benchmarks.begin() + (rnd() % benchmarks.size());
-        auto& b = *i;
-
-        b->_proc(*b->_istate);
-
-        ++b->_istate;
-
-        if (b->_istate == b->_states.end())
-        {
-            benchmarks.erase(i);
-        }
-    }
-
-    for (auto& b : registered_benchmarks)
-    {
-        int64_t total_time = 0;
-        int total_iterations = 0;
-        for (auto& state : b->_states)
-        {
-            total_time += state.duration_ns();
-            total_iterations += state.iterations();
-        }
-
-        int64_t mean_time = total_time / (b->_samples * total_iterations);
-
-        printf("%20s: %lld ns\n", b->name(), mean_time);
-    }
 }
 
 #if (defined(_MSC_VER) || defined(__MINGW32__)) && !defined(PICOBENCH_TEST)
@@ -418,7 +705,9 @@ high_res_clock::time_point high_res_clock::now()
 int main(int argc, char* argv[])
 {
     picobench::runner r;
-    r.run_benchmarks();
+    auto report = r.run_benchmarks();
+    report.to_text(std::cout);
+    report.to_text_concise(std::cout);
     return 0;
 }
 #endif
