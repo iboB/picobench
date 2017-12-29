@@ -264,7 +264,6 @@ public:
 #include <random>
 #include <iostream>
 #include <iomanip>
-#include <deque>
 #include <unordered_map>
 #include <map>
 #include <memory>
@@ -444,7 +443,7 @@ private:
 
     static void line(std::ostream& out)
     {
-        for (int i = 0; i < 80; ++i) out.put('_');
+        for (int i = 0; i < 79; ++i) out.put('=');
         out.put('\n');
     }
 
@@ -643,7 +642,7 @@ private:
     friend class registry;
 
     // global registration of all benchmarks
-    using benchmarks_vector = std::deque<std::unique_ptr<benchmark_impl>>;
+    using benchmarks_vector = std::vector<std::unique_ptr<benchmark_impl>>;
     using suite_map = std::unordered_map<const char*, benchmarks_vector>;
     static suite_map& suites()
     {
@@ -717,7 +716,7 @@ int main(int argc, char* argv[])
     picobench::runner r;
     auto report = r.run_benchmarks();
     report.to_text(std::cout);
-    report.to_text_concise(std::cout);
+    //report.to_text_concise(std::cout);
     return 0;
 }
 #endif
