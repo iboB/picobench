@@ -3,6 +3,7 @@
 #include "picobench/picobench.hpp"
 
 #include <vector>
+#include <deque>
 #include <cstdlib>
 
 void rand_vector(picobench::state& s)
@@ -25,3 +26,13 @@ void rand_vector_reserve(picobench::state& s)
     }
 }
 PICOBENCH(rand_vector_reserve);
+
+void rand_deque(picobench::state& s)
+{
+    std::deque<int> v;
+    for (auto _ : s)
+    {
+        v.push_back(rand());
+    }
+}
+PICOBENCH(rand_deque);
