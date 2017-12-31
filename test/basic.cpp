@@ -2,5 +2,6 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
+#define PICOBENCH_DEBUG
 #define PICOBENCH_TEST_WITH_DOCTEST
 #include <picobench/picobench.hpp>

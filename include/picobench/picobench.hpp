@@ -219,7 +219,7 @@ public:
     benchmark& iterations(std::vector<int> data) { _state_iterations = std::move(data); return *this; }
     benchmark& samples(int n) { _samples = n; return *this; }
     benchmark& label(const char* label) { _name = label; return *this; }
-    benchmark& baseline(bool b) { _baseline = b; return *this; }
+    benchmark& baseline(bool b = true) { _baseline = b; return *this; }
 
 protected:
     friend class runner;
@@ -758,6 +758,7 @@ void this_thread_sleep_for(const std::chrono::duration<Rep, Period>& duration)
 #if defined(PICOBENCH_TEST_WITH_DOCTEST)
 
 #include <string>
+#include <sstream>
 
 using namespace picobench;
 using namespace std;
@@ -795,6 +796,29 @@ PICOBENCH_SUITE("test empty");
 
 PICOBENCH_SUITE("test b");
 
+static void b_a(picobench::state& s)
+{
+    for (auto _ : s)
+    {
+        this_thread_sleep_for_ns(75);
+    }
+}
+PICOBENCH(b_a)
+    .iterations({ 20, 30, 50 });
+
+static void b_b(picobench::state& s)
+{
+    for (auto _ : s)
+    {
+        this_thread_sleep_for_ns(100);
+    }
+}
+PICOBENCH(b_b)
+    .baseline()
+    .label("something else")
+    .samples(15)
+    .iterations({ 10, 20, 30 });
+
 const report::suite& find_suite(const string& s, const report& r)
 {
     for (auto& suite : r.suites)
@@ -812,7 +836,7 @@ TEST_CASE("[picobench] test")
     runner r;
     auto report = r.run_benchmarks();
 
-    CHECK(report.suites.size() == 1);
+    CHECK(report.suites.size() == 2);
 
     auto& a = find_suite("test a", report);
     CHECK(a.name == "test a");
@@ -856,5 +880,95 @@ TEST_CASE("[picobench] test")
         CHECK(d.samples == r._default_samples);
         CHECK(d.total_time_ns == d.dimension * 20);
     }
+
+    auto& b = find_suite("test b", report);
+    CHECK(b.name == "test b");
+    CHECK(b.benchmarks.size() == 2);
+
+    auto& ba = b.benchmarks[0];
+    CHECK(ba.name == "b_a");
+    CHECK(!ba.is_baseline);
+    CHECK(ba.data.size() == 3);
+
+    int state_iters_a[] = { 20, 30, 50 };
+    for (size_t i = 0; i<ba.data.size(); ++i)
+    {
+        auto& d = ba.data[i];
+        CHECK(d.dimension == state_iters_a[i]);
+        CHECK(d.samples == r._default_samples);
+        CHECK(d.total_time_ns == d.dimension * 75);
+    }
+
+    auto& bb = b.benchmarks[1];
+    CHECK(bb.name == "something else");
+    CHECK(bb.is_baseline);
+    CHECK(bb.data.size() == 3);
+
+    int state_iters_b[] = { 10, 20, 30 };
+    for (size_t i = 0; i<bb.data.size(); ++i)
+    {
+        auto& d = bb.data[i];
+        CHECK(d.dimension == state_iters_b[i]);
+        CHECK(d.samples == 15);
+        CHECK(d.total_time_ns == d.dimension * 100);
+    }
+
+    ostringstream sout;
+    report.to_text_concise(sout);
+    const char* concise =
+        "test a:\n"
+        "===============================================================================\n"
+        "   Name (baseline is *)   |  ns/op  | Baseline |  Ops/second\n"
+        "===============================================================================\n"
+        "                    a_a * |      10 |        - | 100000000.0\n"
+        "                      a_b |      11 |    1.100 |  90909090.9\n"
+        "                      a_c |      20 |    2.000 |  50000000.0\n"
+        "===============================================================================\n"
+        "test b:\n"
+        "===============================================================================\n"
+        "   Name (baseline is *)   |  ns/op  | Baseline |  Ops/second\n"
+        "===============================================================================\n"
+        "                      b_a |      75 |    0.750 |  13333333.3\n"
+        "         something else * |     100 |        - |  10000000.0\n"
+        "===============================================================================\n";
+
+    CHECK(sout.str() == concise);
+
+    const char* txt = 
+        "test a:\n"
+        "===============================================================================\n"
+        "   Name (baseline is *)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n"
+        "===============================================================================\n"
+        "                    a_a * |       8 |     0.000 |      10 |      - |100000000.0\n"
+        "                      a_b |       8 |     0.000 |      11 |  1.100 | 90909090.9\n"
+        "                      a_c |       8 |     0.000 |      20 |  2.000 | 50000000.0\n"
+        "                    a_a * |      64 |     0.001 |      10 |      - |100000000.0\n"
+        "                      a_b |      64 |     0.001 |      11 |  1.100 | 90909090.9\n"
+        "                      a_c |      64 |     0.001 |      20 |  2.000 | 50000000.0\n"
+        "                    a_a * |     512 |     0.005 |      10 |      - |100000000.0\n"
+        "                      a_b |     512 |     0.006 |      11 |  1.100 | 90909090.9\n"
+        "                      a_c |     512 |     0.010 |      20 |  2.000 | 50000000.0\n"
+        "                    a_a * |    4096 |     0.041 |      10 |      - |100000000.0\n"
+        "                      a_b |    4096 |     0.045 |      11 |  1.100 | 90909090.9\n"
+        "                      a_c |    4096 |     0.082 |      20 |  2.000 | 50000000.0\n"
+        "                    a_a * |    8196 |     0.082 |      10 |      - |100000000.0\n"
+        "                      a_b |    8196 |     0.090 |      11 |  1.100 | 90909090.9\n"
+        "                      a_c |    8196 |     0.164 |      20 |  2.000 | 50000000.0\n"
+        "===============================================================================\n"
+        "test b:\n"
+        "===============================================================================\n"
+        "   Name (baseline is *)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n"
+        "===============================================================================\n"
+        "         something else * |      10 |     0.001 |     100 |      - | 10000000.0\n"
+        "                      b_a |      20 |     0.002 |      75 |  0.750 | 13333333.3\n"
+        "         something else * |      20 |     0.002 |     100 |      - | 10000000.0\n"
+        "                      b_a |      30 |     0.002 |      75 |  0.750 | 13333333.3\n"
+        "         something else * |      30 |     0.003 |     100 |      - | 10000000.0\n"
+        "                      b_a |      50 |     0.004 |      75 |    ??? | 13333333.3\n"
+        "===============================================================================\n";
+
+    sout.str(string());
+    report.to_text(sout);
+    CHECK(sout.str() == txt);
 }
 #endif
