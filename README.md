@@ -1,5 +1,7 @@
 # picobench
 
+[![Build Status](https://travis-ci.org/iboB/picobench.svg?branch=master)](https://travis-ci.org/iboB/picobench)
+
 *This project is incomplete and a work in progress.*
 
 A micro microbenchmarking library in a single header file.
