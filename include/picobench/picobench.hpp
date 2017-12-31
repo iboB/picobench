@@ -510,7 +510,7 @@ public:
             // also identify a baseline in this loop
             // if there is no explicit one, set the first one as a baseline
             bool found_baseline = false;
-            for (auto& rb : suite.second)
+            for (auto& rb : suite.benchmarks)
             {
                 benchmarks.push_back(rb.get());
                 if (rb->_baseline)
@@ -519,9 +519,9 @@ public:
                 }
             }
 
-            if (!found_baseline && !suite.second.empty())
+            if (!found_baseline && !suite.benchmarks.empty())
             {
-                suite.second.front()->_baseline = true;
+                suite.benchmarks.front()->_baseline = true;
             }
         }
 
@@ -578,13 +578,13 @@ public:
 
         for (auto& suite : registered_suites)
         {
-            rpt_suite->name = suite.first;
+            rpt_suite->name = suite.name;
 
             // build benchmark view
-            rpt_suite->benchmarks.resize(suite.second.size());
+            rpt_suite->benchmarks.resize(suite.benchmarks.size());
             auto rpt_benchmark = rpt_suite->benchmarks.begin();
 
-            for(auto& b : suite.second)
+            for(auto& b : suite.benchmarks)
             {
                 rpt_benchmark->name = b->_name;
                 rpt_benchmark->is_baseline = b->_baseline;
@@ -643,10 +643,15 @@ private:
 
     // global registration of all benchmarks
     using benchmarks_vector = std::vector<std::unique_ptr<benchmark_impl>>;
-    using suite_map = std::unordered_map<const char*, benchmarks_vector>;
-    static suite_map& suites()
+    struct rsuite
     {
-        static suite_map b;
+        const char* name;
+        benchmarks_vector benchmarks;
+    };
+
+    static std::vector<rsuite>& suites()
+    {
+        static std::vector<rsuite> b;
         return b;
     }
 
@@ -658,7 +663,15 @@ private:
 
     static benchmarks_vector& benchmarks_for_current_suite()
     {
-        return suites()[current_suite()];
+        const char* cur_suite_name = current_suite();
+        auto& ss = suites();
+        for (auto& s : ss)
+        {
+            if (s.name == cur_suite_name)
+                return s.benchmarks;
+        }
+        ss.push_back({ cur_suite_name, {} });
+        return ss.back().benchmarks;
     }
 
     // default data
