@@ -1,10 +1,11 @@
-// picobench v0.01
+// picobench v1.00
+// https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
 //
 // MIT License
 //
-// Copyright(c) 2017 Borislav Stanimirov
+// Copyright(c) 2017-2018 Borislav Stanimirov
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -28,13 +29,30 @@
 //                  VERSION HISTORY
 //
 //  0.01 (2017-12-28) Initial prototype release
+//  1.00 (2018-01-01) Initial release
 //
 //
-//                  DOCUMENTATION
+//                  BASIC DOCUMENTATION
+//
+// A very brief usage guide follows. For more detailed documentation see the
+// README here: https://github.com/iboB/picobench/blob/master/README.md
 //
 // Simply include this file wherever you need.
-// Define PICOBENCH_IMPLEMENT or define PICOBENCH_IMPLEMENT in one compilation
-// unit to have the implementation compiled there.
+// You need to define PICOBENCH_IMPLEMENT_WITH_MAIN (or PICOBENCH_IMPLEMENT if
+// you want to write your own main function) in one compilation unit to have 
+// the implementation compiled there.
+//
+// The benchmark code must be a `void (picobench::state&)` function which 
+// you have written. Benchmarks are registered using the `PICOBENCH` macro 
+// where the only argument is the function's name.
+//
+// You can have multiple benchmarks in multiple files. All will be run when the
+// executable starts.
+//
+// Typically a benchmark has a loop. To run the loop use the state argument in
+// a range-based for loop in your function. The time spent looping is measured 
+// for the benchmark. You can have initialization/deinitialization code outside
+// of the loop and it won't be measured.
 //
 //
 //                  EXAMPLE
@@ -52,14 +70,12 @@
 // PICOBENCH(benchmark_my_function);
 //
 //
-//                  TESTING
+//                  TESTS
 //
-// Some basic tests are included in this header file and use doctest (https://github.com/onqtam/doctest).
-// To run them, define PICOBENCH_TEST_WITH_DOCTEST before including
-// the header in a file which has doctest.h already included.
-//
-// More complex tests, which are not suitable for a single file are available
-// in picobench's official repo: https://github.com/iboB/picobench
+// Tests for the main features are included in this header file and use doctest 
+// (https://github.com/onqtam/doctest). To run them, define 
+// PICOBENCH_TEST_WITH_DOCTEST before including the header in a file which has
+// doctest.h already included.
 #pragma once
 
 #include <cstdint>
@@ -267,6 +283,7 @@ public:
 #include <unordered_map>
 #include <map>
 #include <memory>
+#include <cstring>
 
 namespace picobench
 {
@@ -669,6 +686,9 @@ private:
         {
             if (s.name == cur_suite_name)
                 return s.benchmarks;
+            
+            if(s.name && cur_suite_name && strcmp(s.name, cur_suite_name) == 0)
+                return s.benchmarks;
         }
         ss.push_back({ cur_suite_name, {} });
         return ss.back().benchmarks;
@@ -740,29 +760,31 @@ int main(int argc, char* argv[])
 namespace picobench
 {
 
-struct fake_time
-{
-    uint64_t now;
-};
-
-fake_time the_time;
-
-high_res_clock::time_point high_res_clock::now()
-{
-    auto ret = time_point(duration(the_time.now));
-    return ret;
-}
-
-void this_thread_sleep_for_ns(uint64_t ns)
-{
-    the_time.now += ns;
-}
+void this_thread_sleep_for_ns(uint64_t ns);
 
 template <class Rep, class Period>
 void this_thread_sleep_for(const std::chrono::duration<Rep, Period>& duration)
 {
     this_thread_sleep_for_ns(std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count());
 }
+
+#if defined PICOBENCH_IMPLEMENT
+static struct fake_time
+{
+    uint64_t now;
+} the_time;
+
+void this_thread_sleep_for_ns(uint64_t ns)
+{
+    the_time.now += ns;
+}
+
+high_res_clock::time_point high_res_clock::now()
+{
+    auto ret = time_point(duration(the_time.now));
+    return ret;
+}
+#endif
 
 }
 
@@ -798,10 +820,9 @@ PICOBENCH(a_b);
 
 static void a_c(picobench::state& s)
 {
-    for (auto _ : s)
-    {
-        this_thread_sleep_for_ns(20);
-    }
+    s.start_timer();
+    this_thread_sleep_for_ns(s.iterations() * 20);
+    s.stop_timer();
 }
 PICOBENCH(a_c);
 
@@ -821,10 +842,8 @@ PICOBENCH(b_a)
 
 static void b_b(picobench::state& s)
 {
-    for (auto _ : s)
-    {
-        this_thread_sleep_for_ns(100);
-    }
+    picobench::scope scope(s);
+    this_thread_sleep_for_ns(s.iterations() * 100);
 }
 PICOBENCH(b_b)
     .baseline()
@@ -842,6 +861,22 @@ const report::suite& find_suite(const string& s, const report& r)
 
     FAIL("missing suite" << s);
     return r.suites.front(); // to avoid noreturn warning
+}
+
+TEST_CASE("[picobench] clock test")
+{
+    auto start = high_res_clock::now();
+    this_thread_sleep_for_ns(1234);
+    auto end = high_res_clock::now();
+
+    auto duration = end - start;
+    CHECK(duration == std::chrono::nanoseconds(1234));
+
+    start = high_res_clock::now();
+    this_thread_sleep_for(std::chrono::milliseconds(987));
+    end = high_res_clock::now();
+    duration = end - start;
+    CHECK(duration == std::chrono::milliseconds(987));
 }
 
 TEST_CASE("[picobench] test")

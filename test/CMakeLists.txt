@@ -15,4 +15,12 @@ endif()
 
 add_executable(basic basic.cpp)
 
+add_executable(multi_cpp
+    multi_cpp/main.cpp
+    multi_cpp/suite_a.cpp
+    multi_cpp/suite_b.cpp
+    multi_cpp/suite_b_cont.cpp
+)
+
 add_test(basic basic)
+add_test(mutli_cpp multi_cpp)
