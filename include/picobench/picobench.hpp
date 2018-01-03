@@ -32,6 +32,21 @@
 //  1.00 (2018-01-01) Initial release
 //
 //
+//                  EXAMPLE
+//
+// void my_function(); // the function you want to benchmark
+//
+// // write your benchmarking code in a function like this
+// static void benchmark_my_function(picobench::state& state)
+// {
+//     // use the state in a range-based for loop to call your code
+//     for (auto _ : state)
+//         my_function();
+// }
+// // create a picobench with your benchmarking code
+// PICOBENCH(benchmark_my_function);
+//
+//
 //                  BASIC DOCUMENTATION
 //
 // A very brief usage guide follows. For more detailed documentation see the
@@ -53,21 +68,6 @@
 // a range-based for loop in your function. The time spent looping is measured 
 // for the benchmark. You can have initialization/deinitialization code outside
 // of the loop and it won't be measured.
-//
-//
-//                  EXAMPLE
-//
-// void my_function(); // the function you want to benchmark
-//
-// // write your benchmarking code in a function like this
-// static void benchmark_my_function(picobench::state& state)
-// {
-//     // use the state in a range-based for loop to call your code
-//     for (auto _ : state)
-//         my_function();
-// }
-// // create a picobench with your benchmarking code
-// PICOBENCH(benchmark_my_function);
 //
 //
 //                  TESTS
@@ -294,7 +294,7 @@ struct report
     {
         int dimension; // number of iterations for the problem space
         int samples; // number of samples taken
-        int64_t total_time_ns; // average time per sample!!!
+        int64_t total_time_ns; // fastest sample!!!
     };
     struct benchmark
     {
@@ -366,6 +366,7 @@ struct report
                     }
                     else
                     {
+                        // no baseline to compare to
                         out << "    ??? |";
                     }
 
@@ -468,7 +469,7 @@ private:
     {
         const char* name;
         bool is_baseline;
-        int64_t total_time_ns; // average time per sample!!!
+        int64_t total_time_ns; // fastest sample!!!
     };
 
     static std::map<int, std::vector<problem_space_benchmark>> get_problem_space_view(const suite& s)
@@ -506,7 +507,7 @@ class runner
 public:
     runner()
         : _default_state_iterations({ 8, 64, 512, 4096, 8196 })
-        , _default_samples(1)
+        , _default_samples(2)
     {}
 
     report run_benchmarks(int random_seed = -1)
@@ -623,18 +624,21 @@ public:
                     {
                         if (state.iterations() == d.dimension)
                         {
-                            d.total_time_ns += state.duration_ns();
+                            if (d.total_time_ns == 0 || d.total_time_ns > state.duration_ns())
+                            {
+                                d.total_time_ns = state.duration_ns();
+                            }
                             ++d.samples;
                         }
                     }
                 }
 
-                // average-out samples
+#if defined(PICOBENCH_DEBUG)
                 for (auto& d : rpt_benchmark->data)
                 {
                     _PICOBENCH_ASSERT(d.samples == b->_samples);
-                    d.total_time_ns /= d.samples;
                 }
+#endif
 
                 ++rpt_benchmark;
             }
@@ -809,11 +813,20 @@ static void a_a(picobench::state& s)
 }
 PICOBENCH(a_a);
 
+map<int, int> a_b_samples;
 static void a_b(picobench::state& s)
 {
+    uint64_t time = 11;
+    if (a_b_samples.find(s.iterations()) == a_b_samples.end())
+    {
+        // slower first time
+        time = 32;
+    }
+
+    ++a_b_samples[s.iterations()];
     for (auto _ : s)
     {
-        this_thread_sleep_for_ns(11);
+        this_thread_sleep_for_ns(time);
     }
 }
 PICOBENCH(a_b);
@@ -840,10 +853,20 @@ static void b_a(picobench::state& s)
 PICOBENCH(b_a)
     .iterations({ 20, 30, 50 });
 
+map<int, int> b_b_samples;
+
 static void b_b(picobench::state& s)
 {
+    uint64_t time = 111;
+    if (b_b_samples.find(s.iterations()) == b_b_samples.end())
+    {
+        // faster first time
+        time = 100;
+    }
+
+    ++b_b_samples[s.iterations()];
     picobench::scope scope(s);
-    this_thread_sleep_for_ns(s.iterations() * 100);
+    this_thread_sleep_for_ns(s.iterations() * time);
 }
 PICOBENCH(b_b)
     .baseline()
@@ -882,6 +905,10 @@ TEST_CASE("[picobench] clock test")
 TEST_CASE("[picobench] test")
 {
     runner r;
+    const vector<int> iters = { 8, 64, 512, 4096, 8196 };
+    CHECK(r._default_state_iterations == iters);
+    CHECK(r._default_samples == 2);
+
     auto report = r.run_benchmarks();
 
     CHECK(report.suites.size() == 2);
@@ -914,6 +941,13 @@ TEST_CASE("[picobench] test")
         CHECK(d.dimension == r._default_state_iterations[i]);
         CHECK(d.samples == r._default_samples);
         CHECK(d.total_time_ns == d.dimension * 11);
+    }
+    size_t j = 0;
+    for (auto& elem : a_b_samples)
+    {
+        CHECK(elem.first == iters[j]);
+        CHECK(elem.second == r._default_samples);
+        ++j;
     }
 
     auto& ac = a.benchmarks[2];
@@ -959,6 +993,14 @@ TEST_CASE("[picobench] test")
         CHECK(d.dimension == state_iters_b[i]);
         CHECK(d.samples == 15);
         CHECK(d.total_time_ns == d.dimension * 100);
+    }
+
+    j = 0;
+    for (auto& elem : b_b_samples)
+    {
+        CHECK(elem.first == state_iters_b[j]);
+        CHECK(elem.second == 15);
+        ++j;
     }
 
     ostringstream sout;

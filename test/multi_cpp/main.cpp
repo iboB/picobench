@@ -8,8 +8,11 @@
 #include <picobench/picobench.hpp>
 
 #include <string>
+#include <map>
 
 using namespace std;
+
+std::map<int, int> g_num_samples;
 
 const picobench::report::suite& find_suite(const string& s, const picobench::report& r)
 {
@@ -36,6 +39,15 @@ TEST_CASE("[picobench] multi cpp test")
 
     auto report = r.run_benchmarks();
     CHECK(report.suites.size() == 2);
+
+    CHECK(g_num_samples.size() == iters.size());
+    size_t i = 0;
+    for (auto& elem : g_num_samples)
+    {
+        CHECK(elem.first == iters[i]);
+        CHECK(elem.second == samples);
+        ++i;
+    }
 
     auto& a = find_suite("suite a", report);
     CHECK(a.name == "suite a");
