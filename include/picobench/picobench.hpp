@@ -1,4 +1,4 @@
-// picobench v1.00
+// picobench v1.01
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -30,6 +30,9 @@
 //
 //  0.01 (2017-12-28) Initial prototype release
 //  1.00 (2018-01-01) Initial release
+//  1.01 (2018-01-03) * Only taking the fastest sample into account
+//                    * Set default number of samples to 2
+//                    * Added CSV output
 //
 //
 //                  EXAMPLE
@@ -809,7 +812,7 @@ int main(int argc, char* argv[])
     auto report = r.run_benchmarks();
     report.to_text(std::cout);
     //report.to_text_concise(std::cout);
-    report.to_csv(std::cout);
+    //report.to_csv(std::cout);
     return 0;
 }
 #endif
