@@ -454,8 +454,63 @@ struct report
         }
     }
 
-    void to_csv(std::ostream& out) const
-    {}
+    void to_csv(std::ostream& out, bool header = true) const
+    {
+        using namespace std;
+
+        if (header)
+        {
+            out << "Suite,Benchmark,b,D,S,\"Total ns\",\"ns/op\",Baseline\n";
+        }
+
+        for (auto& suite : suites)
+        {
+            const benchmark* baseline = nullptr;
+            for (auto& bm : suite.benchmarks)
+            {
+                if (bm.is_baseline)
+                {
+                    baseline = &bm;
+                    break;
+                }
+            }
+            _PICOBENCH_ASSERT(baseline);
+
+            for (auto& bm : suite.benchmarks)
+            {
+                for (auto& d : bm.data)
+                {
+                    if (suite.name)
+                    {
+                        out << '"' << suite.name << '"';;
+                    }
+                    out << ",\"" << bm.name << "\",";
+                    if (&bm == baseline)
+                    {
+                        out << '*';
+                    }
+                    out << ','
+                        << d.dimension << ','
+                        << d.samples << ','
+                        << d.total_time_ns << ','
+                        << (d.total_time_ns / d.dimension) << ',';
+                    
+                    if (baseline)
+                    {
+                        for (auto& bd : baseline->data)
+                        {
+                            if (bd.dimension == d.dimension)
+                            {
+                                out << fixed << setprecision(3) << (double(d.total_time_ns) / double(bd.total_time_ns));
+                            }
+                        }
+                    }
+
+                    out << '\n';
+                }
+            }
+        }
+    }
 
 private:
 
@@ -754,6 +809,7 @@ int main(int argc, char* argv[])
     auto report = r.run_benchmarks();
     report.to_text(std::cout);
     //report.to_text_concise(std::cout);
+    report.to_csv(std::cout);
     return 0;
 }
 #endif
@@ -1060,5 +1116,33 @@ TEST_CASE("[picobench] test")
     sout.str(string());
     report.to_text(sout);
     CHECK(sout.str() == txt);
+
+    const char* csv =
+        "Suite,Benchmark,b,D,S,\"Total ns\",\"ns/op\",Baseline\n"
+        "\"test a\",\"a_a\",*,8,2,80,10,1.000\n"
+        "\"test a\",\"a_a\",*,64,2,640,10,1.000\n"
+        "\"test a\",\"a_a\",*,512,2,5120,10,1.000\n"
+        "\"test a\",\"a_a\",*,4096,2,40960,10,1.000\n"
+        "\"test a\",\"a_a\",*,8196,2,81960,10,1.000\n"
+        "\"test a\",\"a_b\",,8,2,88,11,1.100\n"
+        "\"test a\",\"a_b\",,64,2,704,11,1.100\n"
+        "\"test a\",\"a_b\",,512,2,5632,11,1.100\n"
+        "\"test a\",\"a_b\",,4096,2,45056,11,1.100\n"
+        "\"test a\",\"a_b\",,8196,2,90156,11,1.100\n"
+        "\"test a\",\"a_c\",,8,2,160,20,2.000\n"
+        "\"test a\",\"a_c\",,64,2,1280,20,2.000\n"
+        "\"test a\",\"a_c\",,512,2,10240,20,2.000\n"
+        "\"test a\",\"a_c\",,4096,2,81920,20,2.000\n"
+        "\"test a\",\"a_c\",,8196,2,163920,20,2.000\n"
+        "\"test b\",\"b_a\",,20,2,1500,75,0.750\n"
+        "\"test b\",\"b_a\",,30,2,2250,75,0.750\n"
+        "\"test b\",\"b_a\",,50,2,3750,75,\n"
+        "\"test b\",\"something else\",*,10,15,1000,100,1.000\n"
+        "\"test b\",\"something else\",*,20,15,2000,100,1.000\n"
+        "\"test b\",\"something else\",*,30,15,3000,100,1.000\n";
+
+    sout.str(string());
+    report.to_csv(sout);
+    CHECK(sout.str() == csv);
 }
 #endif
