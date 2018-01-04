@@ -81,20 +81,30 @@ You can have multiple benchmarks in multiple files. All of them will be run when
 
 Use `state::iterations` as shown in the example to make initialization based on how many iterations the loop will make.
 
-If you don't want the automatic time measurement, you can use `state::start_timer` and `state::stop_timer` to manually measure it.
+If you don't want the automatic time measurement, you can use `state::start_timer` and `state::stop_timer` to manually measure it, or use the RAII class `picobench::scope` for semi-automatic measurement.
 
-Here's an example of a benchmark, which does not use the automatic time measurement:
+Here's an example of a couple of benchmarks, which does not use the range-based for loop for time measurement:
 
 ```c++
-void my_func(); // function you want to benchmark
+void my_func(); // Function you want to benchmark
 static void benchmark_my_func(picobench::state& s)
 {
-    s.start_timer();
+    s.start_timer(); // Manual start
     for (int i=0; i<s.iterations(); ++i)
         my_func();
-    s.stop_timer();
+    s.stop_timer(); // Manual stop
 }
 PICOBENCH(benchmark_my_func);
+
+void my_func2();
+static void benchmark_my_func2(picobench::state& s)
+{
+    custom_init(); // Some user-defined initialization
+    picobench::scope scope(s); // Constructor starts measurement. Destrucror stops it
+    for (int i=0; i<s.iterations(); ++i)
+        my_func2();
+}
+PICOBENCH(benchmark_my_func2);
 ```
 
 ### Custom main function
@@ -103,13 +113,18 @@ If you write your own `main` function, you need to add the following to it in or
 
 ```c++
     picobench::runner runner;
-    auto report = runner.run_benchmarks();
-    // Then to output the data in the report use
-    report.to_text(std::cout); // Default
-    // or
-    report.to_text_consise(std::cout); // No iterations breakdown
-    // or
-    report.to_csv(std::cout); // Otputs in csv format. Most detailed
+    // Optionally parse command line
+    runner.parse_cmd_line(argc, argv);
+    if (runner.should_run()) // Cmd line may have disabled benchmarks
+    {
+        auto report = runner.run_benchmarks();
+        // Then to output the data in the report use
+        report.to_text(std::cout); // Default
+        // or
+        report.to_text_consise(std::cout); // No iterations breakdown
+        // or
+        report.to_csv(std::cout); // Otputs in csv format. Most detailed
+    }
 ```
 
 Instead of `std::cout` you may want to use another `std::ostream` instance of your choice.
@@ -156,6 +171,10 @@ You can combine the options by concatenating them like this: `PICOBENCH(my_func)
 
 If you write your own main function, you can set the default iterations and samples for all benchmarks with `runner::set_default_state_iterations` and `runner::set_default_samples` *before* calling `runner::run_benchmarks`.
 
+If you parse the command line or use the library-provided `main` function you can also set the iterations and samples with command line args:
+* `--iters=1000,5000,10000` will set the iterations for benchmarks which don't explicitly override them
+* `--samples=5` will set the samples for benchmarks which don't explicitly override them
+
 ### Misc
 
 * The runner randomizes the benchmarks. To have the same order on every run and every platform, set an integer seed to `runner::run_benchmarks`.
@@ -172,6 +191,7 @@ int main()
     custom_global_init();
 
     picobench::runner runner;
+    // Disregard command-line for simplicity
 
     // Two sets of iterations
     runner.set_default_state_iterations({10000, 50000});

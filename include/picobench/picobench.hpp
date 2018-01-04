@@ -1,4 +1,4 @@
-// picobench v1.01
+// picobench v1.02
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -28,11 +28,12 @@
 //
 //                  VERSION HISTORY
 //
-//  0.01 (2017-12-28) Initial prototype release
-//  1.00 (2018-01-01) Initial release
+//  1.02 (2018-01-04) Added parsing of command line
 //  1.01 (2018-01-03) * Only taking the fastest sample into account
 //                    * Set default number of samples to 2
 //                    * Added CSV output
+//  1.00 (2018-01-01) Initial release
+//  0.01 (2017-12-28) Initial prototype release
 //
 //
 //                  EXAMPLE
@@ -84,6 +85,9 @@
 #include <cstdint>
 #include <chrono>
 #include <vector>
+
+#define PICOBENCH_VERSION 1.02
+#define PICOBENCH_VERSION_STR "1.02"
 
 #if defined(PICOBENCH_TEST_WITH_DOCTEST)
 #   define PICOBENCH_TEST
@@ -282,11 +286,12 @@ public:
 
 #include <random>
 #include <iostream>
+#include <fstream>
 #include <iomanip>
-#include <unordered_map>
 #include <map>
 #include <memory>
 #include <cstring>
+#include <cstdlib>
 
 namespace picobench
 {
@@ -560,6 +565,26 @@ private:
     std::vector<state>::iterator _istate;
 };
 
+class picostring
+{
+public:
+    picostring() = default;
+    explicit picostring(const char* text)
+    {
+        str = text;
+        len = strlen(text);
+    }
+
+    const char* str;
+    int len = 0;
+
+    // checks whether other begins with this string
+    bool cmp(const char* other) const
+    {
+        return strncmp(str, other, len) == 0;
+    }
+};
+
 class runner
 {
 public:
@@ -570,6 +595,8 @@ public:
 
     report run_benchmarks(int random_seed = -1)
     {
+        _PICOBENCH_ASSERT(_error == 0 && _should_run);
+
         if (random_seed == -1)
         {
             random_seed = std::random_device()();
@@ -717,6 +744,69 @@ public:
         _default_samples = n;
     }
 
+    // returns false if there were errors parsing the command line
+    // all args starting with prefix are parsed
+    // the others are ignored
+    bool parse_cmd_line(int argc, char* argv[], const char* cmd_prefix = "-", std::ostream& out = std::cout, std::ostream& err = std::cerr)
+    {
+        _cmd_prefix = picostring(cmd_prefix);
+        _stdout = &out;
+        _stderr = &err;
+
+        if (_opts.empty())
+        {
+            _opts.emplace_back("-iters=", "<n1,n2,n3>", 
+                "Sets default iterations for benchmarks", 
+                &runner::cmd_iters);
+            _opts.emplace_back("-samples=", "<n>", 
+                "Sets default number of samples for benchmarks", 
+                &runner::cmd_samples);
+            _opts.emplace_back("-no-run", "",
+                "Doesn't run benchmarks",
+                &runner::cmd_no_run);
+            _opts.emplace_back("-help", "", 
+                "Prints help", 
+                &runner::cmd_help);
+        }
+
+        for (int i = 1; i < argc; ++i)
+        {
+            if (!_cmd_prefix.cmp(argv[i]))
+                continue;
+
+            auto arg = argv[i] + _cmd_prefix.len;
+
+            bool found = false;
+            for (auto& opt : _opts)
+            {
+                if (opt.cmd.cmp(arg))
+                {
+                    found = true;
+                    bool success = (this->*opt.handler)(arg + opt.cmd.len);
+                    if (!success)
+                    {
+                        err << "Bad command-line argument: " << argv[i] << "\n";
+                        _error = 1;
+                        return false;
+                    }
+                    break;
+                }
+            }
+
+            if (!found)
+            {
+                err << "Unknown command-line argument: " << argv[i] << "\n";
+                _error = 1;
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    bool should_run() const { return _error == 0 && _should_run; }
+    int error() const { return _error; }
+
 private:
     friend class registry;
 
@@ -756,6 +846,10 @@ private:
         return ss.back().benchmarks;
     }
 
+    // state
+    int _error = 0;
+    bool _should_run = true;
+
     // default data
 
     // default iterations per state per benchmark
@@ -763,6 +857,79 @@ private:
 
     // default samples per benchmark
     int _default_samples;
+
+    // command line parsing
+    picostring _cmd_prefix;
+    std::ostream* _stdout = nullptr;
+    std::ostream* _stderr = nullptr;
+    typedef bool (runner::*cmd_handler)(const char*);
+    struct cmd_line_option
+    {        
+        cmd_line_option() = default;
+        cmd_line_option(const char* c, const char* a, const char* d, cmd_handler h)
+            : cmd(c)
+            , arg_desc(a)
+            , desc(d)
+            , handler(h)
+        {}
+        picostring cmd;
+        picostring arg_desc;
+        const char* desc;
+        cmd_handler handler;
+    };
+    std::vector<cmd_line_option> _opts;
+
+    bool cmd_iters(const char* line)
+    {
+        std::vector<int> iters;
+        auto p = line;
+        while(true)
+        {
+            auto i = int(strtoul(p, nullptr, 10));
+            if (i <= 0) return false;
+            iters.push_back(i);
+            p = strchr(p + 1, ',');
+            if (!p) break;
+            ++p;
+        }
+        if (iters.empty()) return false;
+        _default_state_iterations = iters;
+        return true;
+    }
+
+    bool cmd_samples(const char* line)
+    {
+        int samples = int(strtol(line, nullptr, 10));
+        if (samples <= 0) return false;
+        _default_samples = samples;
+        return true;
+    }
+
+    bool cmd_no_run(const char* line)
+    {
+        if (*line) return false;
+        _should_run = false;
+        return true;
+    }
+
+    bool cmd_help(const char* line)
+    {
+        if (*line) return false;
+        auto& cout = *_stdout;
+        cout << "picobench " PICOBENCH_VERSION_STR << "\n";
+        for (auto& opt : _opts)
+        {
+            cout << ' ' << _cmd_prefix.str << opt.cmd.str << opt.arg_desc.str;
+            int w = 25 - (_cmd_prefix.len + opt.cmd.len + opt.arg_desc.len);
+            for (int i = 0; i < w; ++i)
+            {
+                cout.put(' ');
+            }
+            cout << opt.desc << "\n";
+        }
+        _should_run = false;
+        return true;
+    }
 };
 
 benchmark::benchmark(const char* name, benchmark_proc proc)
@@ -809,11 +976,13 @@ high_res_clock::time_point high_res_clock::now()
 int main(int argc, char* argv[])
 {
     picobench::runner r;
-    auto report = r.run_benchmarks();
-    report.to_text(std::cout);
-    //report.to_text_concise(std::cout);
-    //report.to_csv(std::cout);
-    return 0;
+    r.parse_cmd_line(argc, argv);
+    if (r.should_run())
+    {
+        auto report = r.run_benchmarks();
+        report.to_text(std::cout);
+    }
+    return r.error();
 }
 #endif
 
@@ -945,8 +1114,13 @@ const report::suite& find_suite(const string& s, const report& r)
     return r.suites.front(); // to avoid noreturn warning
 }
 
-TEST_CASE("[picobench] clock test")
+#define cntof(ar) (sizeof(ar) / sizeof(ar[0]))
+
+TEST_CASE("[picobench] test utils")
 {
+    char* ar[] = { "test", "123", "asdf" };
+    CHECK(cntof(ar) == 3);
+
     auto start = high_res_clock::now();
     this_thread_sleep_for_ns(1234);
     auto end = high_res_clock::now();
@@ -961,12 +1135,116 @@ TEST_CASE("[picobench] clock test")
     CHECK(duration == std::chrono::milliseconds(987));
 }
 
+TEST_CASE("[picobench] picostring")
+{
+    picostring str("test");
+    CHECK(str.str == "test");
+    CHECK(str.len == 4);
+    CHECK(!str.cmp("tes"));
+    CHECK(str.cmp("test"));
+    CHECK(str.cmp("test123"));
+}
+
+const vector<int> default_iters = { 8, 64, 512, 4096, 8196 };
+const int default_samples = 2;
+
+TEST_CASE("[picobench] cmd line")
+{
+    {
+        runner r;
+        bool b = r.parse_cmd_line(0, {});
+        CHECK(b);
+        CHECK(r.should_run());
+        CHECK(r.error() == 0);
+        CHECK(r._default_state_iterations == default_iters);
+        CHECK(r._default_samples == default_samples);
+    }
+
+    {
+        runner r;
+        ostringstream sout, serr;
+        char* cmd_line[] = { "", "-asdf" };
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        CHECK(sout.str().empty());
+        CHECK(serr.str() == "Unknown command-line argument: -asdf\n");
+        CHECK(!b);
+        CHECK(!r.should_run());
+        CHECK(r.error() == 1);
+    }
+
+    {
+        runner r;        
+        char* cmd_line[] = { "", "--no-run", "--iters=1,2,3", "--samples=54" };
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line);
+        CHECK(b);
+        CHECK(!r.should_run());
+        CHECK(r.error() == 0);
+        CHECK(r._default_samples == 54);
+        CHECK(r._default_state_iterations == vector<int>({ 1, 2, 3 }));
+    }
+
+    {
+        runner r;
+        char* cmd_line[] = { "", "--pb-no-run", "--pb-iters=1000,2000,3000", "--pb-samples=54" };
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb");
+        CHECK(b);
+        CHECK(!r.should_run());
+        CHECK(r.error() == 0);
+        CHECK(r._default_samples == 54);
+        CHECK(r._default_state_iterations == vector<int>({ 1000, 2000, 3000 }));
+    }
+
+    {
+        runner r;
+        ostringstream sout, serr;
+        char* cmd_line[] = { "", "--samples=xxx" };
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        CHECK(sout.str().empty());
+        CHECK(serr.str() == "Bad command-line argument: --samples=xxx\n");
+        CHECK(!b);
+        CHECK(!r.should_run());
+        CHECK(r.error() == 1);
+        CHECK(r._default_samples == default_samples);
+    }
+
+    {
+        runner r;
+        ostringstream sout, serr;
+        char* cmd_line[] = { "", "--iters=1,xxx,2" };
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        CHECK(sout.str().empty());
+        CHECK(serr.str() == "Bad command-line argument: --iters=1,xxx,2\n");
+        CHECK(!b);
+        CHECK(!r.should_run());
+        CHECK(r.error() == 1);
+        CHECK(r._default_state_iterations == default_iters);
+    }
+
+    {
+        const char* help =
+            "picobench " PICOBENCH_VERSION_STR "\n"
+            " --pb-iters=<n1,n2,n3>    Sets default iterations for benchmarks\n"
+            " --pb-samples=<n>         Sets default number of samples for benchmarks\n"
+            " --pb-no-run              Doesn't run benchmarks\n"
+            " --pb-help                Prints help\n";
+
+        runner r;
+        ostringstream sout, serr;
+        char* cmd_line[] = { "", "--pb-help" };
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb", sout, serr);
+        CHECK(sout.str() == help);
+        CHECK(serr.str().empty());
+        CHECK(b);
+        CHECK(!r.should_run());
+        CHECK(r.error() == 0);
+    }
+}
+
 TEST_CASE("[picobench] test")
 {
     runner r;
-    const vector<int> iters = { 8, 64, 512, 4096, 8196 };
-    CHECK(r._default_state_iterations == iters);
-    CHECK(r._default_samples == 2);
+    CHECK(r._default_state_iterations == default_iters);
+    CHECK(r._default_samples == default_samples);
 
     auto report = r.run_benchmarks();
 
@@ -1004,7 +1282,7 @@ TEST_CASE("[picobench] test")
     size_t j = 0;
     for (auto& elem : a_b_samples)
     {
-        CHECK(elem.first == iters[j]);
+        CHECK(elem.first == default_iters[j]);
         CHECK(elem.second == r._default_samples);
         ++j;
     }
