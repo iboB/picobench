@@ -175,6 +175,12 @@ If you parse the command line or use the library-provided `main` function you ca
 * `--iters=1000,5000,10000` will set the iterations for benchmarks which don't explicitly override them
 * `--samples=5` will set the samples for benchmarks which don't explicitly override them
 
+### Other command line arguments
+
+If you're using the library-provided `main` function, it will also handle the following command line arguments:
+* `--out-fmt=<txt|con|csv>` - sets the output report format to either full text, concise text or csv.
+* `--output=<filename>` - writes the output report to a given file
+
 ### Misc
 
 * The runner randomizes the benchmarks. To have the same order on every run and every platform, set an integer seed to `runner::run_benchmarks`.

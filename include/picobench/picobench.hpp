@@ -585,6 +585,13 @@ public:
     }
 };
 
+enum class report_output_format
+{
+    text,
+    concise_text,
+    csv
+};
+
 class runner
 {
 public:
@@ -761,6 +768,12 @@ public:
             _opts.emplace_back("-samples=", "<n>", 
                 "Sets default number of samples for benchmarks", 
                 &runner::cmd_samples);
+            _opts.emplace_back("-out-fmt=", "<txt|con|csv>",
+                "Outputs text or concise or csv",
+                &runner::cmd_out_fmt);
+            _opts.emplace_back("-output=", "<filename>",
+                "Sets output filename or `stdout`",
+                &runner::cmd_output);
             _opts.emplace_back("-no-run", "",
                 "Doesn't run benchmarks",
                 &runner::cmd_no_run);
@@ -785,7 +798,7 @@ public:
                     bool success = (this->*opt.handler)(arg + opt.cmd.len);
                     if (!success)
                     {
-                        err << "Bad command-line argument: " << argv[i] << "\n";
+                        err << "Error: Bad command-line argument: " << argv[i] << "\n";
                         _error = 1;
                         return false;
                     }
@@ -795,7 +808,7 @@ public:
 
             if (!found)
             {
-                err << "Unknown command-line argument: " << argv[i] << "\n";
+                err << "Error: Unknown command-line argument: " << argv[i] << "\n";
                 _error = 1;
                 return false;
             }
@@ -806,6 +819,11 @@ public:
 
     bool should_run() const { return _error == 0 && _should_run; }
     int error() const { return _error; }
+
+    report_output_format preferred_output_format() const { return _output_format; }
+
+    // can be nullptr (library-provided main will interpret it as stdout)
+    const char* preferred_output_filename() const { return _output_file; }
 
 private:
     friend class registry;
@@ -849,6 +867,8 @@ private:
     // state
     int _error = 0;
     bool _should_run = true;
+    report_output_format _output_format = report_output_format::text;
+    const char* _output_file = nullptr; // nullptr means stdout
 
     // default data
 
@@ -920,7 +940,7 @@ private:
         for (auto& opt : _opts)
         {
             cout << ' ' << _cmd_prefix.str << opt.cmd.str << opt.arg_desc.str;
-            int w = 25 - (_cmd_prefix.len + opt.cmd.len + opt.arg_desc.len);
+            int w = 27 - (_cmd_prefix.len + opt.cmd.len + opt.arg_desc.len);
             for (int i = 0; i < w; ++i)
             {
                 cout.put(' ');
@@ -928,6 +948,40 @@ private:
             cout << opt.desc << "\n";
         }
         _should_run = false;
+        return true;
+    }
+
+    bool cmd_out_fmt(const char* line)
+    {
+        if (strcmp(line, "txt") == 0)
+        {
+            _output_format = report_output_format::text;
+        }
+        else if (strcmp(line, "con") == 0)
+        {
+            _output_format = report_output_format::concise_text;
+        }
+        else if (strcmp(line, "csv") == 0)
+        {
+            _output_format = report_output_format::csv;
+        }
+        else
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool cmd_output(const char* line)
+    {
+        if (strcmp(line, "stdout") != 0)
+        {
+            _output_file = line;
+        }
+        else
+        {
+            _output_file = nullptr;
+        }
         return true;
     }
 };
@@ -980,7 +1034,31 @@ int main(int argc, char* argv[])
     if (r.should_run())
     {
         auto report = r.run_benchmarks();
-        report.to_text(std::cout);
+        std::ostream* out = &std::cout;
+        std::ofstream fout;
+        if (r.preferred_output_filename())
+        {
+            fout.open(r.preferred_output_filename());
+            if (!fout.is_open())
+            {
+                std::cerr << "Error: Could not open output file `" << r.preferred_output_filename() << "`\n";
+                return 1;
+            }
+            out = &fout;
+        }
+
+        switch (r.preferred_output_format())
+        {
+        case picobench::report_output_format::text:
+            report.to_text(*out);
+            break;
+        case picobench::report_output_format::concise_text:
+            report.to_text_concise(*out);
+            break;
+        case picobench::report_output_format::csv:
+            report.to_csv(*out);
+            break;
+        }
     }
     return r.error();
 }
@@ -1158,6 +1236,8 @@ TEST_CASE("[picobench] cmd line")
         CHECK(r.error() == 0);
         CHECK(r._default_state_iterations == default_iters);
         CHECK(r._default_samples == default_samples);
+        CHECK(!r.preferred_output_filename());
+        CHECK(r.preferred_output_format() == report_output_format::text);
     }
 
     {
@@ -1166,7 +1246,7 @@ TEST_CASE("[picobench] cmd line")
         char* cmd_line[] = { "", "-asdf" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
         CHECK(sout.str().empty());
-        CHECK(serr.str() == "Unknown command-line argument: -asdf\n");
+        CHECK(serr.str() == "Error: Unknown command-line argument: -asdf\n");
         CHECK(!b);
         CHECK(!r.should_run());
         CHECK(r.error() == 1);
@@ -1174,24 +1254,30 @@ TEST_CASE("[picobench] cmd line")
 
     {
         runner r;        
-        char* cmd_line[] = { "", "--no-run", "--iters=1,2,3", "--samples=54" };
+        char* cmd_line[] = { "", "--no-run", "--iters=1,2,3", "--samples=54", "--out-fmt=con", "--output=stdout" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line);
         CHECK(b);
         CHECK(!r.should_run());
         CHECK(r.error() == 0);
         CHECK(r._default_samples == 54);
         CHECK(r._default_state_iterations == vector<int>({ 1, 2, 3 }));
+        CHECK(!r.preferred_output_filename());
+        CHECK(r.preferred_output_format() == report_output_format::concise_text);
     }
 
     {
         runner r;
-        char* cmd_line[] = { "", "--pb-no-run", "--pb-iters=1000,2000,3000", "--pb-samples=54" };
+        char* cmd_line[] = { "", "--pb-no-run", "--pb-iters=1000,2000,3000", "-other-cmd1", "--pb-samples=54", 
+            "-other-cmd2", "--pb-out-fmt=csv", "--pb-output=foo.csv" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb");
         CHECK(b);
         CHECK(!r.should_run());
         CHECK(r.error() == 0);
         CHECK(r._default_samples == 54);
         CHECK(r._default_state_iterations == vector<int>({ 1000, 2000, 3000 }));
+        CHECK(r.preferred_output_filename() == "foo.csv");
+        CHECK(r.preferred_output_format() == report_output_format::csv);
+
     }
 
     {
@@ -1200,7 +1286,7 @@ TEST_CASE("[picobench] cmd line")
         char* cmd_line[] = { "", "--samples=xxx" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
         CHECK(sout.str().empty());
-        CHECK(serr.str() == "Bad command-line argument: --samples=xxx\n");
+        CHECK(serr.str() == "Error: Bad command-line argument: --samples=xxx\n");
         CHECK(!b);
         CHECK(!r.should_run());
         CHECK(r.error() == 1);
@@ -1213,7 +1299,7 @@ TEST_CASE("[picobench] cmd line")
         char* cmd_line[] = { "", "--iters=1,xxx,2" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
         CHECK(sout.str().empty());
-        CHECK(serr.str() == "Bad command-line argument: --iters=1,xxx,2\n");
+        CHECK(serr.str() == "Error: Bad command-line argument: --iters=1,xxx,2\n");
         CHECK(!b);
         CHECK(!r.should_run());
         CHECK(r.error() == 1);
@@ -1221,12 +1307,27 @@ TEST_CASE("[picobench] cmd line")
     }
 
     {
+        runner r;
+        ostringstream sout, serr;
+        char* cmd_line[] = { "", "--out-fmt=asdf" };
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        CHECK(sout.str().empty());
+        CHECK(serr.str() == "Error: Bad command-line argument: --out-fmt=asdf\n");
+        CHECK(!b);
+        CHECK(!r.should_run());
+        CHECK(r.error() == 1);
+        CHECK(r.preferred_output_format() == report_output_format::text);
+    }
+
+    {
         const char* help =
             "picobench " PICOBENCH_VERSION_STR "\n"
-            " --pb-iters=<n1,n2,n3>    Sets default iterations for benchmarks\n"
-            " --pb-samples=<n>         Sets default number of samples for benchmarks\n"
-            " --pb-no-run              Doesn't run benchmarks\n"
-            " --pb-help                Prints help\n";
+            " --pb-iters=<n1,n2,n3>      Sets default iterations for benchmarks\n"
+            " --pb-samples=<n>           Sets default number of samples for benchmarks\n"
+            " --pb-out-fmt=<txt|con|csv> Outputs text or concise or csv\n"
+            " --pb-output=<filename>     Sets output filename or `stdout`\n"
+            " --pb-no-run                Doesn't run benchmarks\n"
+            " --pb-help                  Prints help\n";
 
         runner r;
         ostringstream sout, serr;
