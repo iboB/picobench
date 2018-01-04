@@ -46,6 +46,8 @@ The output of this benchmark might look like this:
 
 ```
 ===============================================================================
+   Name (baseline is *)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second
+===============================================================================
             rand_vector * |       8 |     0.001 |     167 |      - |  5974607.9
       rand_vector_reserve |       8 |     0.000 |      55 |  0.329 | 18181818.1
             rand_vector * |      64 |     0.004 |      69 |      - | 14343343.8
