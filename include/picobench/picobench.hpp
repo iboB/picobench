@@ -754,7 +754,7 @@ public:
     // returns false if there were errors parsing the command line
     // all args starting with prefix are parsed
     // the others are ignored
-    bool parse_cmd_line(int argc, char* argv[], const char* cmd_prefix = "-", std::ostream& out = std::cout, std::ostream& err = std::cerr)
+    bool parse_cmd_line(int argc, const char* const argv[], const char* cmd_prefix = "-", std::ostream& out = std::cout, std::ostream& err = std::cerr)
     {
         _cmd_prefix = picostring(cmd_prefix);
         _stdout = &out;
@@ -1243,7 +1243,7 @@ TEST_CASE("[picobench] cmd line")
     {
         runner r;
         ostringstream sout, serr;
-        char* cmd_line[] = { "", "-asdf" };
+        const char* cmd_line[] = { "", "-asdf" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Unknown command-line argument: -asdf\n");
@@ -1254,7 +1254,7 @@ TEST_CASE("[picobench] cmd line")
 
     {
         runner r;        
-        char* cmd_line[] = { "", "--no-run", "--iters=1,2,3", "--samples=54", "--out-fmt=con", "--output=stdout" };
+        const char* cmd_line[] = { "", "--no-run", "--iters=1,2,3", "--samples=54", "--out-fmt=con", "--output=stdout" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line);
         CHECK(b);
         CHECK(!r.should_run());
@@ -1267,7 +1267,7 @@ TEST_CASE("[picobench] cmd line")
 
     {
         runner r;
-        char* cmd_line[] = { "", "--pb-no-run", "--pb-iters=1000,2000,3000", "-other-cmd1", "--pb-samples=54", 
+        const char* cmd_line[] = { "", "--pb-no-run", "--pb-iters=1000,2000,3000", "-other-cmd1", "--pb-samples=54", 
             "-other-cmd2", "--pb-out-fmt=csv", "--pb-output=foo.csv" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb");
         CHECK(b);
@@ -1283,7 +1283,7 @@ TEST_CASE("[picobench] cmd line")
     {
         runner r;
         ostringstream sout, serr;
-        char* cmd_line[] = { "", "--samples=xxx" };
+        const char* cmd_line[] = { "", "--samples=xxx" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Bad command-line argument: --samples=xxx\n");
@@ -1296,7 +1296,7 @@ TEST_CASE("[picobench] cmd line")
     {
         runner r;
         ostringstream sout, serr;
-        char* cmd_line[] = { "", "--iters=1,xxx,2" };
+        const char* cmd_line[] = { "", "--iters=1,xxx,2" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Bad command-line argument: --iters=1,xxx,2\n");
@@ -1309,7 +1309,7 @@ TEST_CASE("[picobench] cmd line")
     {
         runner r;
         ostringstream sout, serr;
-        char* cmd_line[] = { "", "--out-fmt=asdf" };
+        const char* cmd_line[] = { "", "--out-fmt=asdf" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Bad command-line argument: --out-fmt=asdf\n");
@@ -1331,7 +1331,7 @@ TEST_CASE("[picobench] cmd line")
 
         runner r;
         ostringstream sout, serr;
-        char* cmd_line[] = { "", "--pb-help" };
+        const char* cmd_line[] = { "", "--pb-help" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb", sout, serr);
         CHECK(sout.str() == help);
         CHECK(serr.str().empty());
