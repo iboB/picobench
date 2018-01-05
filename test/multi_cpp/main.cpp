@@ -14,16 +14,11 @@ using namespace std;
 
 std::map<int, int> g_num_samples;
 
-const picobench::report::suite& find_suite(const string& s, const picobench::report& r)
+const picobench::report::suite& find_suite(const char* s, const picobench::report& r)
 {
-    for (auto& suite : r.suites)
-    {
-        if (s == suite.name)
-            return suite;
-    }
-
-    FAIL("missing suite " << s);
-    return r.suites.front(); // to avoid noreturn warning
+    auto suite = r.find_suite(s);
+    REQUIRE(suite);    
+    return *suite;
 }
 
 TEST_CASE("[picobench] multi cpp test")

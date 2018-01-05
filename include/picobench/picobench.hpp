@@ -1,4 +1,4 @@
-// picobench v1.02
+// picobench v1.03
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -28,6 +28,7 @@
 //
 //                  VERSION HISTORY
 //
+//  1.03 (2018-01-05) Added helper methods for easier browsing of reports
 //  1.02 (2018-01-04) Added parsing of command line
 //  1.01 (2018-01-03) * Only taking the fastest sample into account
 //                    * Set default number of samples to 2
@@ -86,8 +87,8 @@
 #include <chrono>
 #include <vector>
 
-#define PICOBENCH_VERSION 1.02
-#define PICOBENCH_VERSION_STR "1.02"
+#define PICOBENCH_VERSION 1.03
+#define PICOBENCH_VERSION_STR "1.03"
 
 #if defined(PICOBENCH_TEST_WITH_DOCTEST)
 #   define PICOBENCH_TEST
@@ -296,8 +297,9 @@ public:
 namespace picobench
 {
 
-struct report
+class report
 {
+public:
     struct benchmark_problem_space
     {
         int dimension; // number of iterations for the problem space
@@ -315,9 +317,42 @@ struct report
     {
         const char* name;
         std::vector<benchmark> benchmarks; // benchmark view
+
+        const benchmark* find_benchmark(const char* name) const
+        {
+            for (auto& b : benchmarks)
+            {
+                if (strcmp(b.name, name) == 0)
+                    return &b;
+            }
+
+            return nullptr;
+        }
+
+        const benchmark* find_baseline() const
+        {
+            for (auto& b : benchmarks)
+            {
+                if (b.is_baseline)
+                    return &b;
+            }
+
+            return nullptr;
+        }
     };
 
     std::vector<suite> suites;
+
+    const suite* find_suite(const char* name) const
+    {
+        for (auto& s : suites)
+        {
+            if (strcmp(s.name, name) == 0)
+                return &s;
+        }
+
+        return nullptr;
+    }
 
     void to_text(std::ostream& out) const
     {
@@ -572,7 +607,7 @@ public:
     explicit picostring(const char* text)
     {
         str = text;
-        len = strlen(text);
+        len = int(strlen(text));
     }
 
     const char* str;
@@ -762,7 +797,7 @@ public:
 
         if (_opts.empty())
         {
-            _opts.emplace_back("-iters=", "<n1,n2,n3>", 
+            _opts.emplace_back("-iters=", "<n1,n2,n3,...>", 
                 "Sets default iterations for benchmarks", 
                 &runner::cmd_iters);
             _opts.emplace_back("-samples=", "<n>", 
@@ -1180,23 +1215,18 @@ PICOBENCH(b_b)
     .samples(15)
     .iterations({ 10, 20, 30 });
 
-const report::suite& find_suite(const string& s, const report& r)
+const picobench::report::suite& find_suite(const char* s, const picobench::report& r)
 {
-    for (auto& suite : r.suites)
-    {
-        if (s == suite.name)
-            return suite;
-    }
-
-    FAIL("missing suite" << s);
-    return r.suites.front(); // to avoid noreturn warning
+    auto suite = r.find_suite(s);
+    REQUIRE(suite);
+    return *suite;
 }
 
 #define cntof(ar) (sizeof(ar) / sizeof(ar[0]))
 
 TEST_CASE("[picobench] test utils")
 {
-    char* ar[] = { "test", "123", "asdf" };
+    const char* ar[] = { "test", "123", "asdf" };
     CHECK(cntof(ar) == 3);
 
     auto start = high_res_clock::now();
@@ -1322,7 +1352,7 @@ TEST_CASE("[picobench] cmd line")
     {
         const char* help =
             "picobench " PICOBENCH_VERSION_STR "\n"
-            " --pb-iters=<n1,n2,n3>      Sets default iterations for benchmarks\n"
+            " --pb-iters=<n1,n2,n3,...>  Sets default iterations for benchmarks\n"
             " --pb-samples=<n>           Sets default number of samples for benchmarks\n"
             " --pb-out-fmt=<txt|con|csv> Outputs text or concise or csv\n"
             " --pb-output=<filename>     Sets output filename or `stdout`\n"
@@ -1350,12 +1380,16 @@ TEST_CASE("[picobench] test")
     auto report = r.run_benchmarks();
 
     CHECK(report.suites.size() == 2);
+    CHECK(!report.find_suite("asdf"));
 
     auto& a = find_suite("test a", report);
     CHECK(a.name == "test a");
     CHECK(a.benchmarks.size() == 3);
+    CHECK(!a.find_benchmark("b_a"));
 
     auto& aa = a.benchmarks[0];
+    CHECK(a.find_baseline() == &aa);
+    CHECK(a.find_benchmark("a_a") == &aa);
     CHECK(aa.name == "a_a");
     CHECK(aa.is_baseline);
     CHECK(aa.data.size() == r._default_state_iterations.size());
@@ -1369,6 +1403,7 @@ TEST_CASE("[picobench] test")
     }
 
     auto& ab = a.benchmarks[1];
+    CHECK(a.find_benchmark("a_b") == &ab);
     CHECK(ab.name == "a_b");
     CHECK(!ab.is_baseline);
     CHECK(ab.data.size() == r._default_state_iterations.size());
@@ -1389,6 +1424,7 @@ TEST_CASE("[picobench] test")
     }
 
     auto& ac = a.benchmarks[2];
+    CHECK(a.find_benchmark("a_c") == &ac);
     CHECK(ac.name == "a_c");
     CHECK(!ac.is_baseline);
     CHECK(ac.data.size() == r._default_state_iterations.size());
@@ -1404,6 +1440,7 @@ TEST_CASE("[picobench] test")
     auto& b = find_suite("test b", report);
     CHECK(b.name == "test b");
     CHECK(b.benchmarks.size() == 2);
+    CHECK(!b.find_benchmark("b_b"));
 
     auto& ba = b.benchmarks[0];
     CHECK(ba.name == "b_a");
@@ -1420,6 +1457,8 @@ TEST_CASE("[picobench] test")
     }
 
     auto& bb = b.benchmarks[1];
+    CHECK(b.find_benchmark("something else") == &bb);
+    CHECK(b.find_baseline() == &bb);
     CHECK(bb.name == "something else");
     CHECK(bb.is_baseline);
     CHECK(bb.data.size() == 3);
