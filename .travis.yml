@@ -98,11 +98,11 @@ script:
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
   - make -j2
   - ./basic
-  #~ - cd ../..
+  - cd ../..
   # executable
-  #~ - cd tools
-  #~ - mkdir -p release_build
-  #~ - cd release_build
-  #~ - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
-  #~ - make -j2
-  #~ - ./picobench
+  - cd tools
+  - mkdir -p release_build
+  - cd release_build
+  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
+  - make -j2
+  - ./picobench "sleep 0.3" "sleep 0.22"

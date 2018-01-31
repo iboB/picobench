@@ -54,7 +54,19 @@ int exec(const char* cmd)
 }
 
 #else
+
+#include <cstdio>
+
+int exec(const char* cmd)
+{
+    auto s = popen(cmd, "r");
+    if (!s) return -1;
+    return pclose(s);
+}
+
 #endif
+
+#include <climits>
 
 #define PICOBENCH_DEBUG
 #define PICOBENCH_IMPLEMENT
