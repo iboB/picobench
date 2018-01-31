@@ -59,6 +59,17 @@ matrix:
           packages: ["clang-5.0", "valgrind", "g++-6"]
           sources: *apt_sources
 
+    # Xcode 9.2 Clang
+    - env: COMPILER=clang++ ADDITIONAL_CXX_FLAGS="-g -fno-omit-frame-pointer -fsanitize=address,undefined"
+      osx_image: xcode9.2
+      os: osx
+
+  allow_failures:
+    # sanitize on Linux is broken on Travis CI, so allow these failures until it's resolved
+    - env: COMPILER=clang++-4.0 ADDITIONAL_CXX_FLAGS="-g -fno-omit-frame-pointer -fsanitize=address,undefined"
+    - env: COMPILER=clang++-5.0 ADDITIONAL_CXX_FLAGS="-g -fno-omit-frame-pointer -fsanitize=address,undefined"
+
+
 before_script:
   - ${COMPILER} --version
   - cmake --version
@@ -66,20 +77,6 @@ before_script:
 script:
   # sanitize options
   - export ASAN_OPTIONS=allow_addr2line=true:check_initialization_order=true:strict_init_order=true:strict_string_checks=true:detect_odr_violation=2:detect_stack_use_after_return=true:verbosity=0
-  # examples
-  - cd example
-  - mkdir -p debug_build
-  - cd debug_build
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
-  - make -j2
-  - ./basic
-  - cd ..
-  - mkdir -p release_build
-  - cd release_build
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
-  - make -j2
-  - ./basic
-  - cd ../..
   # tests
   - cd test
   - mkdir -p debug_build
@@ -93,4 +90,19 @@ script:
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
   - make -j2
   - ctest --output-on_failure
-
+  - cd ../..
+  # examples
+  - cd example
+  - mkdir -p release_build
+  - cd release_build
+  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
+  - make -j2
+  - ./basic
+  #~ - cd ../..
+  # executable
+  #~ - cd tools
+  #~ - mkdir -p release_build
+  #~ - cd release_build
+  #~ - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
+  #~ - make -j2
+  #~ - ./picobench
