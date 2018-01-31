@@ -67,6 +67,8 @@ int exec(const char* cmd)
 #endif
 
 #include <climits>
+#include <string>
+#include <cctype>
 
 #define PICOBENCH_DEBUG
 #define PICOBENCH_IMPLEMENT
@@ -112,8 +114,65 @@ void bench_proc(state& s)
     s.add_custom_duration(-spawn_time);
 };
 
+bool parse_bfile(uintptr_t, const char* file)
+{
+    if (!*file)
+    {
+        cerr << "Error: bfile missing filename\n";
+        return false;
+    }
+
+    ifstream fin(file);
+
+    if (!fin)
+    {
+        cerr << "Error: Cannot open " << file << "\n";
+        return false;
+    }
+
+    int iline = 0;
+    string line;
+    string name;
+    while (!fin.eof())
+    {
+        getline(fin, line);
+        bool empty = true;
+        for (auto& c : line)
+        {
+            if (!isspace(c))
+            {
+                empty = false;
+                break;
+            }
+        }
+
+        if (empty) continue;
+
+        ++iline;
+        // odd lines are benchmark names
+        // even lines are commands
+        if (iline & 1)
+        {
+            name = line;
+        }
+        else
+        {
+            benchmarks.push_back({ name, line });
+        }
+    }
+    return true;
+}
+
 int main(int argc, char* argv[])
 {    
+    if (argc == 1)
+    {
+        cout << "picobench " PICOBENCH_VERSION_STR "\n";
+        cout << "Usage: picobench <benchmarks>\n";
+        cout << "Type 'picobench --help' for help.\n";
+        return 0;
+    }
+
     for (int i = 1; i < argc; ++i)
     {
         if (argv[i][0] != '-')
@@ -122,47 +181,49 @@ int main(int argc, char* argv[])
         }
     }
 
+    runner r;
+    r.set_default_state_iterations({ 1 });
+
+    r.add_cmd_opt("-bfile=", "<filename>", "Set a file which lists benchmarks", parse_bfile);
+
+    r.parse_cmd_line(argc, argv);
+
+    if (!r.should_run()) return r.error();
+
     for (size_t i = 0; i < benchmarks.size(); ++i)
     {
         auto& b = benchmarks[i];
         registry::new_benchmark(b.name.c_str(), bench_proc).user_data(i);
     }
 
-    runner r;
-    r.set_default_state_iterations({ 1 });
-    r.parse_cmd_line(argc, argv);
-    if (r.should_run())
+    spawn_time = calc_spawn_time();
+
+    auto report = r.run_benchmarks();
+    std::ostream* out = &std::cout;
+    std::ofstream fout;
+    if (r.preferred_output_filename())
     {
-        spawn_time = calc_spawn_time();
-
-        auto report = r.run_benchmarks();
-        std::ostream* out = &std::cout;
-        std::ofstream fout;
-        if (r.preferred_output_filename())
+        fout.open(r.preferred_output_filename());
+        if (!fout.is_open())
         {
-            fout.open(r.preferred_output_filename());
-            if (!fout.is_open())
-            {
-                std::cerr << "Error: Could not open output file `" << r.preferred_output_filename() << "`\n";
-                return 1;
-            }
-            out = &fout;
+            std::cerr << "Error: Could not open output file `" << r.preferred_output_filename() << "`\n";
+            return 1;
         }
-
-        switch (r.preferred_output_format())
-        {
-        case picobench::report_output_format::text:
-            report.to_text(*out);
-            break;
-        case picobench::report_output_format::concise_text:
-            report.to_text_concise(*out);
-            break;
-        case picobench::report_output_format::csv:
-            report.to_csv(*out);
-            break;
-        }
+        out = &fout;
     }
+
+    switch (r.preferred_output_format())
+    {
+    case picobench::report_output_format::text:
+        report.to_text(*out);
+        break;
+    case picobench::report_output_format::concise_text:
+        report.to_text_concise(*out);
+        break;
+    case picobench::report_output_format::csv:
+        report.to_csv(*out);
+        break;
+    }
+
     return r.error();
-    
-    return 0;
 }
