@@ -1,4 +1,4 @@
-// picobench v1.03
+// picobench v1.04
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -28,6 +28,11 @@
 //
 //                  VERSION HISTORY
 //
+//  1.04 (2018-02-06) * User data for benchmarks, which can be seen from states
+//                    * `add_custom_duration` to states so the user can modify time
+//                    * Text table format fixes
+//                    * Custom cmd opts in runner
+//                    * --version CLI command
 //  1.03 (2018-01-05) Added helper methods for easier browsing of reports
 //  1.02 (2018-01-04) Added parsing of command line
 //  1.01 (2018-01-03) * Only taking the fastest sample into account
@@ -87,8 +92,8 @@
 #include <chrono>
 #include <vector>
 
-#define PICOBENCH_VERSION 1.03
-#define PICOBENCH_VERSION_STR "1.03"
+#define PICOBENCH_VERSION 1.04
+#define PICOBENCH_VERSION_STR "1.04"
 
 #if defined(PICOBENCH_TEST_WITH_DOCTEST)
 #   define PICOBENCH_TEST
