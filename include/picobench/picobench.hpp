@@ -1253,8 +1253,10 @@ PICOBENCH(a_b);
 static void a_c(picobench::state& s)
 {
     s.start_timer();
-    this_thread_sleep_for_ns(s.iterations() * 20);
+    this_thread_sleep_for_ns((s.iterations() - 1) * 20);
     s.stop_timer();
+
+    s.add_custom_duration(20);
 }
 PICOBENCH(a_c);
 
@@ -1264,13 +1266,15 @@ PICOBENCH_SUITE("test b");
 
 static void b_a(picobench::state& s)
 {
+    CHECK(s.user_data() == 9088);
     for (auto _ : s)
     {
         this_thread_sleep_for_ns(75);
     }
 }
 PICOBENCH(b_a)
-    .iterations({ 20, 30, 50 });
+    .iterations({ 20, 30, 50 })
+    .user_data(9088);
 
 map<int, int> b_b_samples;
 
