@@ -121,7 +121,7 @@ If you write your own `main` function, you need to add the following to it in or
         // Then to output the data in the report use
         report.to_text(std::cout); // Default
         // or
-        report.to_text_consise(std::cout); // No iterations breakdown
+        report.to_text_concise(std::cout); // No iterations breakdown
         // or
         report.to_csv(std::cout); // Otputs in csv format. Most detailed
     }
