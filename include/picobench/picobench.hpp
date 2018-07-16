@@ -316,7 +316,11 @@ public:
 #   include <Windows.h>
 #else
 #   if defined(PICOBENCH_MT)
-#       include <sched.h>
+#       if defined __APPLE__
+#           include <mach/mach.h>
+#       else
+#           include <sched.h>
+#       endif
 #       include <pthread.h>
 #   endif
 #endif
@@ -744,20 +748,24 @@ public:
 #if defined(PICOBENCH_MT)
         // set thread affinity to first cpu
         // so the high resolution clock doesn't miss cycles
+        {
 #if defined(_WIN32)
-        {
-            SetThreadAffinityMask(GetCurrentThread(), 1);
-        }
+        SetThreadAffinityMask(GetCurrentThread(), 1);
+#elif defined(__APPLE__)
+        thread_affinity_policy_data_t policy = {0};
+        thread_policy_set(
+            pthread_mach_thread_np(pthread_self()),
+            THREAD_AFFINITY_POLICY,
+            (thread_policy_t)&policy, 1);
 #else
-        {
-            cpu_set_t cpuset;
-            CPU_ZERO(&cpuset);
-            CPU_SET(0, &cpuset);
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(0, &cpuset);
 
-            pthread_t cur = pthread_self();
-            pthread_setaffinity_np(cur, sizeof(cpu_set_t), &cpuset);
-        }
+        pthread_t cur = pthread_self();
+        pthread_setaffinity_np(cur, sizeof(cpu_set_t), &cpuset);
 #endif
+        }
 #endif
 
         // we run a random benchmark from it incrementing _istate for each
