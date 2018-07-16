@@ -5,6 +5,7 @@
 #define PICOBENCH_DEBUG
 #define PICOBENCH_TEST
 #define PICOBENCH_IMPLEMENT
+#define PICOBENCH_MT
 #include <picobench/picobench.hpp>
 
 #include <string>
@@ -17,7 +18,7 @@ std::map<int, int> g_num_samples;
 const picobench::report::suite& find_suite(const char* s, const picobench::report& r)
 {
     auto suite = r.find_suite(s);
-    REQUIRE(suite);    
+    REQUIRE(suite);
     return *suite;
 }
 

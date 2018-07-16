@@ -22,5 +22,7 @@ add_executable(multi_cpp
     multi_cpp/suite_b_cont.cpp
 )
 
+target_link_libraries(multi_cpp pthread)
+
 add_test(basic basic)
-add_test(mutli_cpp multi_cpp)
+add_test(multi_cpp multi_cpp)

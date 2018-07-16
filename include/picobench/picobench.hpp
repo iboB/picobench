@@ -29,8 +29,8 @@
 //                  VERSION HISTORY
 //
 //  1.05 (2018-07-17) * Counting iterations of state
-//                    * Set thread affinity when running benchmarks so as not
-//                      to miss cpu cycles with the high res clock
+//                    * Optionally set thread affinity when running benchmarks
+//                      so as not to miss cpu cycles with the high res clock
 //  1.04 (2018-02-06) * User data for benchmarks, which can be seen from states
 //                    * `add_custom_duration` to states so the user can modify time
 //                    * Text table format fixes
@@ -315,6 +315,10 @@ public:
 #   define WIN32_LEAN_AND_MEAN
 #   include <Windows.h>
 #else
+#   if defined(PICOBENCH_MT)
+#       include <sched.h>
+#       include <pthread.h>
+#   endif
 #endif
 
 namespace picobench
@@ -737,6 +741,7 @@ public:
             b->_istate = b->_states.begin();
         }
 
+#if defined(PICOBENCH_MT)
         // set thread affinity to first cpu
         // so the high resolution clock doesn't miss cycles
 #if defined(_WIN32)
@@ -750,8 +755,9 @@ public:
             CPU_SET(0, &cpuset);
 
             pthread_t cur = pthread_self();
-            return pthread_setaffinity_np(cur, sizeof(cpu_set_t), &cpuset);
+            pthread_setaffinity_np(cur, sizeof(cpu_set_t), &cpuset);
         }
+#endif
 #endif
 
         // we run a random benchmark from it incrementing _istate for each
