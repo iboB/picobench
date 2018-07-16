@@ -1,5 +1,6 @@
+if: tag IS blank # don't build tags
 language: cpp
-sudo: false
+sudo: true # travis-ci/travis-ci#9033
 os: linux
 compiler: gcc
 
@@ -63,12 +64,6 @@ matrix:
     - env: COMPILER=clang++ ADDITIONAL_CXX_FLAGS="-g -fno-omit-frame-pointer -fsanitize=address,undefined"
       osx_image: xcode9.2
       os: osx
-
-  allow_failures:
-    # sanitize on Linux is broken on Travis CI, so allow these failures until it's resolved
-    - env: COMPILER=clang++-4.0 ADDITIONAL_CXX_FLAGS="-g -fno-omit-frame-pointer -fsanitize=address,undefined"
-    - env: COMPILER=clang++-5.0 ADDITIONAL_CXX_FLAGS="-g -fno-omit-frame-pointer -fsanitize=address,undefined"
-
 
 before_script:
   - ${COMPILER} --version
