@@ -1,4 +1,4 @@
-// picobench v1.04
+// picobench v1.05
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -28,6 +28,9 @@
 //
 //                  VERSION HISTORY
 //
+//  1.05 (2018-07-17) * Counting iterations of state
+//                    * Set thread affinity when running benchmarks so as not
+//                      to miss cpu cycles with the high res clock
 //  1.04 (2018-02-06) * User data for benchmarks, which can be seen from states
 //                    * `add_custom_duration` to states so the user can modify time
 //                    * Text table format fixes
@@ -64,26 +67,26 @@
 //
 // Simply include this file wherever you need.
 // You need to define PICOBENCH_IMPLEMENT_WITH_MAIN (or PICOBENCH_IMPLEMENT if
-// you want to write your own main function) in one compilation unit to have 
+// you want to write your own main function) in one compilation unit to have
 // the implementation compiled there.
 //
-// The benchmark code must be a `void (picobench::state&)` function which 
-// you have written. Benchmarks are registered using the `PICOBENCH` macro 
+// The benchmark code must be a `void (picobench::state&)` function which
+// you have written. Benchmarks are registered using the `PICOBENCH` macro
 // where the only argument is the function's name.
 //
 // You can have multiple benchmarks in multiple files. All will be run when the
 // executable starts.
 //
 // Typically a benchmark has a loop. To run the loop use the state argument in
-// a range-based for loop in your function. The time spent looping is measured 
+// a range-based for loop in your function. The time spent looping is measured
 // for the benchmark. You can have initialization/deinitialization code outside
 // of the loop and it won't be measured.
 //
 //
 //                  TESTS
 //
-// Tests for the main features are included in this header file and use doctest 
-// (https://github.com/onqtam/doctest). To run them, define 
+// Tests for the main features are included in this header file and use doctest
+// (https://github.com/onqtam/doctest). To run them, define
 // PICOBENCH_TEST_WITH_DOCTEST before including the header in a file which has
 // doctest.h already included.
 #pragma once
@@ -92,8 +95,8 @@
 #include <chrono>
 #include <vector>
 
-#define PICOBENCH_VERSION 1.04
-#define PICOBENCH_VERSION_STR "1.04"
+#define PICOBENCH_VERSION 1.05
+#define PICOBENCH_VERSION_STR "1.05"
 
 #if defined(PICOBENCH_TEST_WITH_DOCTEST)
 #   define PICOBENCH_TEST
@@ -165,30 +168,32 @@ public:
     {
         PICOBENCH_INLINE
         iterator(state* parent)
-            : _counter(parent->iterations())
+            : _counter(0)
+            , _lim(parent->iterations())
             , _state(parent)
         {
-            _PICOBENCH_ASSERT(_counter > 0);
+            _PICOBENCH_ASSERT(_counter < _lim);
         }
 
         PICOBENCH_INLINE
         iterator()
             : _counter(0)
+            , _lim(0)
             , _state(nullptr)
         {}
 
         PICOBENCH_INLINE
         iterator& operator++()
         {
-            _PICOBENCH_ASSERT(_counter > 0);
-            --_counter;
+            _PICOBENCH_ASSERT(_counter < _lim);
+            ++_counter;
             return *this;
         }
 
         PICOBENCH_INLINE
         bool operator!=(const iterator&) const
         {
-            if (_counter) return true;
+            if (_counter < _lim) return true;
             _state->stop_timer();
             return false;
         }
@@ -196,11 +201,12 @@ public:
         PICOBENCH_INLINE
         int operator*() const
         {
-            return 0;
+            return _counter;
         }
 
     private:
         int _counter;
+        const int _lim;
         state* _state;
     };
 
@@ -304,6 +310,12 @@ public:
 #include <memory>
 #include <cstring>
 #include <cstdlib>
+
+#if defined(_WIN32)
+#   define WIN32_LEAN_AND_MEAN
+#   include <Windows.h>
+#else
+#endif
 
 namespace picobench
 {
@@ -725,6 +737,23 @@ public:
             b->_istate = b->_states.begin();
         }
 
+        // set thread affinity to first cpu
+        // so the high resolution clock doesn't miss cycles
+#if defined(_WIN32)
+        {
+            SetThreadAffinityMask(GetCurrentThread(), 1);
+        }
+#else
+        {
+            cpu_set_t cpuset;
+            CPU_ZERO(&cpuset);
+            CPU_SET(0, &cpuset);
+
+            pthread_t cur = pthread_self();
+            return pthread_setaffinity_np(cur, sizeof(cpu_set_t), &cpuset);
+        }
+#endif
+
         // we run a random benchmark from it incrementing _istate for each
         // when _istate reaches _states.end(), we erase the benchmark
         // when the vector becomes empty, we're done
@@ -1118,8 +1147,6 @@ int registry::set_test_suite(const char* name)
 }
 
 #if (defined(_MSC_VER) || defined(__MINGW32__)) && !defined(PICOBENCH_TEST)
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
 
 static const long long high_res_clock_freq = []() -> long long
 {
@@ -1333,6 +1360,37 @@ TEST_CASE("[picobench] picostring")
     CHECK(!str.cmp("tes"));
     CHECK(str.cmp("test"));
     CHECK(str.cmp("test123"));
+}
+
+TEST_CASE("[picobench] state")
+{
+    state s0(3);
+    CHECK(s0.iterations() == 3);
+    CHECK(s0.user_data() == 0);
+
+    int i = 0;
+    for (auto _ : s0)
+    {
+        CHECK(_ == i);
+        ++i;
+        this_thread_sleep_for_ns(1);
+    }
+    CHECK(s0.duration_ns() == 3);
+    s0.add_custom_duration(5);
+    CHECK(s0.duration_ns() == 8);
+
+    state s(2, 123);
+    CHECK(s.iterations() == 2);
+    CHECK(s.user_data() == 123);
+
+    i = 0;
+    for (auto it = s.begin(); it != s.end(); ++it)
+    {
+        CHECK(*it == i);
+        ++i;
+        this_thread_sleep_for_ns(2);
+    }
+    CHECK(s.duration_ns() == 4);
 }
 
 const vector<int> default_iters = { 8, 64, 512, 4096, 8196 };
