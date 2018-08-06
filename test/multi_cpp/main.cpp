@@ -33,7 +33,8 @@ TEST_CASE("[picobench] multi cpp test")
     const int samples = 13;
     r.set_default_samples(samples);
 
-    auto report = r.run_benchmarks();
+    r.run_benchmarks();
+    auto report = r.generate_report();
     CHECK(report.suites.size() == 2);
 
     CHECK(g_num_samples.size() == iters.size());

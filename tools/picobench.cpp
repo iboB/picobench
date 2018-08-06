@@ -101,7 +101,7 @@ struct bench
 };
 
 vector<bench> benchmarks;
-int64_t spawn_time;
+static int64_t spawn_time;
 
 void bench_proc(state& s)
 {
@@ -193,12 +193,13 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < benchmarks.size(); ++i)
     {
         auto& b = benchmarks[i];
-        registry::new_benchmark(b.name.c_str(), bench_proc).user_data(i);
+        global_registry::new_benchmark(b.name.c_str(), bench_proc).user_data(i);
     }
 
     spawn_time = calc_spawn_time();
 
-    auto report = r.run_benchmarks();
+    r.run_benchmarks();
+    auto report = r.generate_report();
     std::ostream* out = &std::cout;
     std::ofstream fout;
     if (r.preferred_output_filename())
