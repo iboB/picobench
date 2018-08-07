@@ -1,6 +1,4 @@
-#define PICOBENCH_DEBUG
-#define PICOBENCH_TEST
-#include <picobench/picobench.hpp>
+#include "picobench_configured.hpp"
 
 PICOBENCH_SUITE("suite a");
 

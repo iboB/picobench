@@ -2,11 +2,9 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include <doctest/doctest.h>
 
-#define PICOBENCH_DEBUG
-#define PICOBENCH_TEST
 #define PICOBENCH_IMPLEMENT
 #define PICOBENCH_MT
-#include <picobench/picobench.hpp>
+#include "picobench_configured.hpp"
 
 #include <string>
 #include <map>
