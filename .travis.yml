@@ -73,31 +73,22 @@ script:
   # sanitize options
   - export ASAN_OPTIONS=allow_addr2line=true:check_initialization_order=true:strict_init_order=true:strict_string_checks=true:detect_odr_violation=2:detect_stack_use_after_return=true:verbosity=0
   # tests
-  - cd test
-  - mkdir -p debug_build
-  - cd debug_build
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
+  - mkdir -p dbg_build
+  - cd dbg_build
+  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DPICOBENCH_BUILD_TOOLS=1 -DPICOBENCH_BUILD_TESTS=1 -DPICOBENCH_BUILD_EXAMPLES=1 -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
   - make -j2
   - ctest --output-on-failure
   - cd ..
   - mkdir -p release_build
   - cd release_build
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
+  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DPICOBENCH_BUILD_TOOLS=1 -DPICOBENCH_BUILD_TESTS=1 -DPICOBENCH_BUILD_EXAMPLES=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
   - make -j2
   - ctest --output-on_failure
-  - cd ../..
   # examples
   - cd example
-  - mkdir -p release_build
-  - cd release_build
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
-  - make -j2
   - ./basic
-  - cd ../..
-  # executable
+  - cd ..
+  # tools
   - cd tools
-  - mkdir -p release_build
-  - cd release_build
-  - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
-  - make -j2
   - ./picobench "sleep 0.3" "sleep 0.22"
+  - cd ..
