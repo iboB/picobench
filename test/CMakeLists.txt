@@ -19,7 +19,7 @@ add_executable(test-multi_cpp
     multi_cpp/suite_b_cont.cpp
     multi_cpp/picobench_configured.hpp
 )
-target_link_libraries(test-multi_cpp picobench pthread)
+target_link_libraries(test-multi_cpp picobench)
 set_target_properties(test-multi_cpp PROPERTIES FOLDER tests)
 
 add_test(basic test-basic)

@@ -10,7 +10,8 @@ project(picobench)
 option(PICOBENCH_BUILD_TOOLS "picobench: build tools" OFF)
 option(PICOBENCH_BUILD_TESTS "picobench: build tests" OFF)
 option(PICOBENCH_BUILD_EXAMPLES "picobench: build examples" OFF)
-mark_as_advanced(PICOBENCH_BUILD_TOOLS PICOBENCH_BUILD_TESTS PICOBENCH_BUILD_EXAMPLES)
+option(PICOBENCH_BIND_TO_ONE_CORE "picobench: bind runner to one core (better precision for long benchmarks)" ON)
+mark_as_advanced(PICOBENCH_BUILD_TOOLS PICOBENCH_BUILD_TESTS PICOBENCH_BUILD_EXAMPLES PICOBENCH_DONT_BIND_TO_ONE_CORE)
 
 add_library(picobench INTERFACE)
 target_sources(picobench INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/picobench/picobench.hpp)
@@ -23,6 +24,12 @@ target_compile_features(picobench INTERFACE
     cxx_range_for
     cxx_right_angle_brackets
 )
+
+if(PICOBENCH_BIND_TO_ONE_CORE)
+    # link with pthread for pthread_setaffinity_np
+    target_link_libraries(picobench INTERFACE pthread)
+endif()
+
 
 if(PICOBENCH_BUILD_TOOLS)
     add_subdirectory(tools)
