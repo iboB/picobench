@@ -77,13 +77,16 @@ script:
   - cd dbg_build
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DPICOBENCH_BUILD_TOOLS=1 -DPICOBENCH_BUILD_TESTS=1 -DPICOBENCH_BUILD_EXAMPLES=1 -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
   - make -j2
+  - cd test
   - ctest --output-on-failure
-  - cd ..
+  - cd ../..
   - mkdir -p release_build
   - cd release_build
   - cmake -DCMAKE_CXX_COMPILER=$COMPILER .. -DPICOBENCH_BUILD_TOOLS=1 -DPICOBENCH_BUILD_TESTS=1 -DPICOBENCH_BUILD_EXAMPLES=1 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="${ADDITIONAL_CXX_FLAGS}"
   - make -j2
+  - cd test
   - ctest --output-on_failure
+  - cd ..
   # examples
   - cd example
   - ./basic
