@@ -3,7 +3,7 @@
 
 [![Build Status](https://travis-ci.org/iboB/picobench.svg?branch=master)](https://travis-ci.org/iboB/picobench)
 
-picobench is tiny (micro) microbenchmarking library in a single header file.
+picobench is a tiny (micro) microbenchmarking library in a single header file.
 
 It's designed to be easy to use and integrate and fast to compile while covering the most common features of a microbenchmarking library.
 
