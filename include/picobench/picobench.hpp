@@ -709,36 +709,53 @@ struct rsuite
     benchmarks_vector benchmarks;
 };
 
-const char*& registry_current_suite()
+class registry
 {
-    static const char* s = nullptr;
-    return s;
-}
-
-std::vector<rsuite>& registry_suites()
-{
-    static std::vector<rsuite> b;
-    return b;
-}
-
-benchmarks_vector& registry_benchmarks_for_current_suite()
-{
-    const char* cur_suite_name = registry_current_suite();
-    auto& ss = registry_suites();
-    for (auto& s : ss)
+public:
+    benchmark& add_benchmark(const char* name, benchmark_proc proc)
     {
-        if (s.name == cur_suite_name)
-            return s.benchmarks;
-
-        if (s.name && cur_suite_name && strcmp(s.name, cur_suite_name) == 0)
-            return s.benchmarks;
+        auto b = new benchmark_impl(name, proc);
+        benchmarks_for_current_suite().emplace_back(b);
+        return *b;
     }
-    ss.push_back({ cur_suite_name, {} });
-    return ss.back().benchmarks;
+
+    void set_suite(const char* name)
+    {
+        m_current_suite_name = name;
+    }
+
+    const char*& current_suite_name()
+    {
+        return m_current_suite_name;
+    }
+
+    benchmarks_vector& benchmarks_for_current_suite()
+    {
+        for (auto& s : _suites)
+        {
+            if (s.name == m_current_suite_name)
+                return s.benchmarks;
+
+            if (s.name && m_current_suite_name && strcmp(s.name, m_current_suite_name) == 0)
+                return s.benchmarks;
+        }
+        _suites.push_back({ m_current_suite_name, {} });
+        return _suites.back().benchmarks;
+    }
+
+protected:
+    friend class runner;
+    const char* m_current_suite_name = nullptr;
+    std::vector<rsuite> _suites;
+};
+
+registry& g_registry()
+{
+    static registry r;
+    return r;
 }
 
-
-class runner
+class runner : public registry
 {
 public:
     runner(bool local = false)
@@ -747,7 +764,7 @@ public:
     {
         if (!local)
         {
-            _suites = std::move(registry_suites());
+            _suites = std::move(g_registry()._suites);
         }
     }
 
@@ -1048,23 +1065,7 @@ public:
     const char* preferred_output_filename() const { return _output_file; }
 
 private:
-    // runner's suites and benchmarks
-    benchmarks_vector& benchmarks_for_current_suite()
-    {
-        for (auto& s : _suites)
-        {
-            if (s.name == _current_suite)
-                return s.benchmarks;
-
-            if (s.name && _current_suite && strcmp(s.name, _current_suite) == 0)
-                return s.benchmarks;
-        }
-        _suites.push_back({ _current_suite, {} });
-        return _suites.back().benchmarks;
-    }
-
-    std::vector<rsuite> _suites;
-    const char* _current_suite = nullptr;
+    // runner's suites and benchmarks come from its parent: registry
 
     // state
     int _error = 0;
@@ -1218,14 +1219,12 @@ benchmark::benchmark(const char* name, benchmark_proc proc)
 
 benchmark& global_registry::new_benchmark(const char* name, benchmark_proc proc)
 {
-    auto b = new benchmark_impl(name, proc);
-    registry_benchmarks_for_current_suite().emplace_back(b);
-    return *b;
+    return g_registry().add_benchmark(name, proc);
 }
 
 int global_registry::set_bench_suite(const char* name)
 {
-    registry_current_suite() = name;
+    g_registry().current_suite_name() = name;
     return 0;
 }
 

@@ -193,7 +193,7 @@ int main(int argc, char* argv[])
     for (size_t i = 0; i < benchmarks.size(); ++i)
     {
         auto& b = benchmarks[i];
-        global_registry::new_benchmark(b.name.c_str(), bench_proc).user_data(i);
+        r.add_benchmark(b.name.c_str(), bench_proc).user_data(i);
     }
 
     spawn_time = calc_spawn_time();
