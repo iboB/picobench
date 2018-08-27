@@ -21,6 +21,7 @@ static void a_a(picobench::state& s)
     {
         this_thread_sleep_for_ns(10);
     }
+    s.set_result(s.iterations() * 2);
 }
 PICOBENCH(a_a);
 
@@ -39,6 +40,7 @@ static void a_b(picobench::state& s)
     {
         this_thread_sleep_for_ns(time);
     }
+    s.set_result(s.iterations() * 2);
 }
 PICOBENCH(a_b);
 
@@ -49,6 +51,7 @@ static void a_c(picobench::state& s)
     s.stop_timer();
 
     s.add_custom_duration(20);
+    s.set_result(s.iterations() * 2);
 }
 PICOBENCH(a_c);
 
@@ -158,7 +161,7 @@ TEST_CASE("[picobench] state")
     CHECK(s.duration_ns() == 4);
 }
 
-const vector<int> default_iters = { 8, 64, 512, 4096, 8196 };
+const vector<int> default_iters = { 8, 64, 512, 4096, 8192 };
 const int default_samples = 2;
 
 TEST_CASE("[picobench] cmd line")
@@ -178,13 +181,14 @@ TEST_CASE("[picobench] cmd line")
     {
         local_runner r;
         ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
         const char* cmd_line[] = { "", "-asdf" };
-        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-");
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Unknown command-line argument: -asdf\n");
         CHECK(!b);
         CHECK(!r.should_run());
-        CHECK(r.error() == 1);
+        CHECK(r.error() == error_unknown_cmd_line_argument);
     }
 
     {
@@ -218,39 +222,42 @@ TEST_CASE("[picobench] cmd line")
     {
         local_runner r;
         ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
         const char* cmd_line[] = { "", "--samples=xxx" };
-        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-");
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Bad command-line argument: --samples=xxx\n");
         CHECK(!b);
         CHECK(!r.should_run());
-        CHECK(r.error() == 1);
+        CHECK(r.error() == error_bad_cmd_line_argument);
         CHECK(r.default_samples() == default_samples);
     }
 
     {
         local_runner r;
         ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
         const char* cmd_line[] = { "", "--iters=1,xxx,2" };
-        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-");
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Bad command-line argument: --iters=1,xxx,2\n");
         CHECK(!b);
         CHECK(!r.should_run());
-        CHECK(r.error() == 1);
+        CHECK(r.error() == error_bad_cmd_line_argument);
         CHECK(r.default_state_iterations() == default_iters);
     }
 
     {
         local_runner r;
         ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
         const char* cmd_line[] = { "", "--out-fmt=asdf" };
-        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-", sout, serr);
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "-");
         CHECK(sout.str().empty());
         CHECK(serr.str() == "Error: Bad command-line argument: --out-fmt=asdf\n");
         CHECK(!b);
         CHECK(!r.should_run());
-        CHECK(r.error() == 1);
+        CHECK(r.error() == error_bad_cmd_line_argument);
         CHECK(r.preferred_output_format() == report_output_format::text);
     }
 
@@ -261,8 +268,9 @@ TEST_CASE("[picobench] cmd line")
 
         local_runner r;
         ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
         const char* cmd_line[] = { "", "--pb-version" };
-        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb", sout, serr);
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb");
         CHECK(sout.str() == v);
         CHECK(serr.str().empty());
         CHECK(b);
@@ -286,8 +294,9 @@ TEST_CASE("[picobench] cmd line")
 
         local_runner r;
         ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
         const char* cmd_line[] = { "", "--pb-help" };
-        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb", sout, serr);
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb");
         CHECK(sout.str() == help);
         CHECK(serr.str().empty());
         CHECK(b);
@@ -321,8 +330,9 @@ TEST_CASE("[picobench] cmd line")
         r.add_cmd_opt("-cmd-bi=", "123", "More custom help", handler_bi, 98);
 
         ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
         const char* cmd_line[] = { "", "--pb-help" };
-        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb", sout, serr);
+        bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb");
         CHECK(sout.str() == help);
         CHECK(serr.str().empty());
         CHECK(b);
@@ -333,7 +343,7 @@ TEST_CASE("[picobench] cmd line")
         serr.str(std::string());
 
         const char* cmd_line2[] = { "",  "--zz-cmd-bi=123", "--zz-cmd-hi" };
-        b = r.parse_cmd_line(cntof(cmd_line2), cmd_line2, "--zz", sout, serr);
+        b = r.parse_cmd_line(cntof(cmd_line2), cmd_line2, "--zz");
 
         CHECK(sout.str().empty());
         CHECK(serr.str().empty());
@@ -348,8 +358,22 @@ TEST_CASE("[picobench] test")
     CHECK(r.default_state_iterations() == default_iters);
     CHECK(r.default_samples() == default_samples);
 
+    r.set_check_results_across_benchmarks(true);
+    r.set_check_results_across_samples(true);
+
+    ostringstream sout;
+    ostringstream serr;
+    r.set_output_streams(sout, serr);
+
     r.run_benchmarks();
     auto report = r.generate_report();
+
+    CHECK(serr.str().empty());
+
+    const char* warnings =
+            "Warning: Benchmark something else @10 has a single instance and cannot be compared to others.\n"
+            "Warning: Benchmark b_a @50 has a single instance and cannot be compared to others.\n";
+    CHECK(sout.str() == warnings);
 
     CHECK(report.suites.size() == 2);
     CHECK(!report.find_suite("asdf"));
@@ -452,7 +476,7 @@ TEST_CASE("[picobench] test")
         ++j;
     }
 
-    ostringstream sout;
+    sout.str(string());
     report.to_text_concise(sout);
     const char* concise =
         "test a:\n"
@@ -490,9 +514,9 @@ TEST_CASE("[picobench] test")
         "                    a_a * |    4096 |     0.041 |      10 |      - |100000000.0\n"
         "                      a_b |    4096 |     0.045 |      11 |  1.100 | 90909090.9\n"
         "                      a_c |    4096 |     0.082 |      20 |  2.000 | 50000000.0\n"
-        "                    a_a * |    8196 |     0.082 |      10 |      - |100000000.0\n"
-        "                      a_b |    8196 |     0.090 |      11 |  1.100 | 90909090.9\n"
-        "                      a_c |    8196 |     0.164 |      20 |  2.000 | 50000000.0\n"
+        "                    a_a * |    8192 |     0.082 |      10 |      - |100000000.0\n"
+        "                      a_b |    8192 |     0.090 |      11 |  1.100 | 90909090.9\n"
+        "                      a_c |    8192 |     0.164 |      20 |  2.000 | 50000000.0\n"
         "===============================================================================\n"
         "test b:\n"
         "===============================================================================\n"
@@ -511,30 +535,32 @@ TEST_CASE("[picobench] test")
     CHECK(sout.str() == txt);
 
     const char* csv =
-        "Suite,Benchmark,b,D,S,\"Total ns\",\"ns/op\",Baseline\n"
-        "\"test a\",\"a_a\",*,8,2,80,10,1.000\n"
-        "\"test a\",\"a_a\",*,64,2,640,10,1.000\n"
-        "\"test a\",\"a_a\",*,512,2,5120,10,1.000\n"
-        "\"test a\",\"a_a\",*,4096,2,40960,10,1.000\n"
-        "\"test a\",\"a_a\",*,8196,2,81960,10,1.000\n"
-        "\"test a\",\"a_b\",,8,2,88,11,1.100\n"
-        "\"test a\",\"a_b\",,64,2,704,11,1.100\n"
-        "\"test a\",\"a_b\",,512,2,5632,11,1.100\n"
-        "\"test a\",\"a_b\",,4096,2,45056,11,1.100\n"
-        "\"test a\",\"a_b\",,8196,2,90156,11,1.100\n"
-        "\"test a\",\"a_c\",,8,2,160,20,2.000\n"
-        "\"test a\",\"a_c\",,64,2,1280,20,2.000\n"
-        "\"test a\",\"a_c\",,512,2,10240,20,2.000\n"
-        "\"test a\",\"a_c\",,4096,2,81920,20,2.000\n"
-        "\"test a\",\"a_c\",,8196,2,163920,20,2.000\n"
-        "\"test b\",\"b_a\",,20,2,1500,75,0.750\n"
-        "\"test b\",\"b_a\",,30,2,2250,75,0.750\n"
-        "\"test b\",\"b_a\",,50,2,3750,75,\n"
-        "\"test b\",\"something else\",*,10,15,1000,100,1.000\n"
-        "\"test b\",\"something else\",*,20,15,2000,100,1.000\n"
-        "\"test b\",\"something else\",*,30,15,3000,100,1.000\n";
+        "Suite,Benchmark,b,D,S,\"Total ns\",Result,\"ns/op\",Baseline\n"
+        "\"test a\",\"a_a\",*,8,2,80,16,10,1.000\n"
+        "\"test a\",\"a_a\",*,64,2,640,128,10,1.000\n"
+        "\"test a\",\"a_a\",*,512,2,5120,1024,10,1.000\n"
+        "\"test a\",\"a_a\",*,4096,2,40960,8192,10,1.000\n"
+        "\"test a\",\"a_a\",*,8192,2,81920,16384,10,1.000\n"
+        "\"test a\",\"a_b\",,8,2,88,16,11,1.100\n"
+        "\"test a\",\"a_b\",,64,2,704,128,11,1.100\n"
+        "\"test a\",\"a_b\",,512,2,5632,1024,11,1.100\n"
+        "\"test a\",\"a_b\",,4096,2,45056,8192,11,1.100\n"
+        "\"test a\",\"a_b\",,8192,2,90112,16384,11,1.100\n"
+        "\"test a\",\"a_c\",,8,2,160,16,20,2.000\n"
+        "\"test a\",\"a_c\",,64,2,1280,128,20,2.000\n"
+        "\"test a\",\"a_c\",,512,2,10240,1024,20,2.000\n"
+        "\"test a\",\"a_c\",,4096,2,81920,8192,20,2.000\n"
+        "\"test a\",\"a_c\",,8192,2,163840,16384,20,2.000\n"
+        "\"test b\",\"b_a\",,20,2,1500,0,75,0.750\n"
+        "\"test b\",\"b_a\",,30,2,2250,0,75,0.750\n"
+        "\"test b\",\"b_a\",,50,2,3750,0,75,\n"
+        "\"test b\",\"something else\",*,10,15,1000,0,100,1.000\n"
+        "\"test b\",\"something else\",*,20,15,2000,0,100,1.000\n"
+        "\"test b\",\"something else\",*,30,15,3000,0,100,1.000\n";
 
     sout.str(string());
     report.to_csv(sout);
     CHECK(sout.str() == csv);
+
+    CHECK(serr.str().empty());
 }
