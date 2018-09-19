@@ -36,7 +36,7 @@
 //                    * Potentially breaking change (gcc and clang)! Always set
 //                      thread affinity to first core. Macro to turn this off.
 //                    * Added runner::run which performs a full execution
-//                    * Added benchmark results and results checking
+//                    * Added benchmark results and results comparison
 //                    * Added error enum
 //                    * Macro option to allow a std::function as a benchmark
 //                    * Macros for default iterations and samples
@@ -991,7 +991,7 @@ public:
                                 d.result = state.result();
                             }
 
-                            if (_check_results_across_samples)
+                            if (_compare_results_across_samples)
                             {
                                 if (d.result != state.result() && !cmp(d.result, state.result()))
                                 {
@@ -1019,7 +1019,7 @@ public:
             ++rpt_suite;
         }
 
-        if (_check_results_across_benchmarks)
+        if (_compare_results_across_benchmarks)
         {
             for(auto& suite : rpt.suites)
             {
@@ -1110,6 +1110,9 @@ public:
             _opts.emplace_back("-output=", "<filename>",
                 "Sets output filename or `stdout`",
                 &runner::cmd_output);
+            _opts.emplace_back("-compare-results", "",
+                "Compare benchmark results",
+                &runner::cmd_compare_results);
             _opts.emplace_back("-no-run", "",
                 "Doesn't run benchmarks",
                 &runner::cmd_no_run);
@@ -1186,11 +1189,11 @@ public:
     void set_preferred_output_filename(const char* path) { _output_file = path; }
     const char* preferred_output_filename() const { return _output_file; }
 
-    void set_check_results_across_samples(bool b) { _check_results_across_samples = b; }
-    bool check_results_across_samples() const { return _check_results_across_samples; }
+    void set_compare_results_across_samples(bool b) { _compare_results_across_samples = b; }
+    bool compare_results_across_samples() const { return _compare_results_across_samples; }
 
-    void set_check_results_across_benchmarks(bool b) { _check_results_across_benchmarks = b; }
-    bool check_results_across_benchmarks() const { return _check_results_across_benchmarks; }
+    void set_compare_results_across_benchmarks(bool b) { _compare_results_across_benchmarks = b; }
+    bool compare_results_across_benchmarks() const { return _compare_results_across_benchmarks; }
 
 private:
     // runner's suites and benchmarks come from its parent: registry
@@ -1199,8 +1202,8 @@ private:
     mutable error_t _error = no_error;
     bool _should_run = true;
 
-    bool _check_results_across_samples = false;
-    bool _check_results_across_benchmarks = false;
+    bool _compare_results_across_samples = false;
+    bool _compare_results_across_benchmarks = false;
 
     report_output_format _output_format = report_output_format::text;
     const char* _output_file = nullptr; // nullptr means stdout
@@ -1333,6 +1336,14 @@ private:
         {
             _output_file = nullptr;
         }
+        return true;
+    }
+
+    bool cmd_compare_results(const char* line)
+    {
+        if (*line) return false;
+        _compare_results_across_samples = true;
+        _compare_results_across_benchmarks = true;
         return true;
     }
 };

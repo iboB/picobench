@@ -176,6 +176,8 @@ TEST_CASE("[picobench] cmd line")
         CHECK(r.default_samples() == default_samples);
         CHECK(!r.preferred_output_filename());
         CHECK(r.preferred_output_format() == report_output_format::text);
+        CHECK(!r.compare_results_across_benchmarks());
+        CHECK(!r.compare_results_across_samples());
     }
 
     {
@@ -202,12 +204,14 @@ TEST_CASE("[picobench] cmd line")
         CHECK(r.default_state_iterations() == vector<int>({ 1, 2, 3 }));
         CHECK(!r.preferred_output_filename());
         CHECK(r.preferred_output_format() == report_output_format::concise_text);
+        CHECK(!r.compare_results_across_benchmarks());
+        CHECK(!r.compare_results_across_samples());
     }
 
     {
         local_runner r;
         const char* cmd_line[] = { "", "--pb-no-run", "--pb-iters=1000,2000,3000", "-other-cmd1", "--pb-samples=54",
-            "-other-cmd2", "--pb-out-fmt=csv", "--pb-output=foo.csv" };
+            "-other-cmd2", "--pb-out-fmt=csv", "--pb-output=foo.csv", "--pb-compare-results" };
         bool b = r.parse_cmd_line(cntof(cmd_line), cmd_line, "--pb");
         CHECK(b);
         CHECK(!r.should_run());
@@ -216,6 +220,8 @@ TEST_CASE("[picobench] cmd line")
         CHECK(r.default_state_iterations() == vector<int>({ 1000, 2000, 3000 }));
         CHECK(r.preferred_output_filename() == "foo.csv");
         CHECK(r.preferred_output_format() == report_output_format::csv);
+        CHECK(r.compare_results_across_benchmarks());
+        CHECK(r.compare_results_across_samples());
 
     }
 
@@ -283,6 +289,7 @@ TEST_CASE("[picobench] cmd line")
         " --pb-samples=<n>           Sets default number of samples for benchmarks\n" \
         " --pb-out-fmt=<txt|con|csv> Outputs text or concise or csv\n" \
         " --pb-output=<filename>     Sets output filename or `stdout`\n" \
+        " --pb-compare-results       Compare benchmark results\n" \
         " --pb-no-run                Doesn't run benchmarks\n" \
         " --pb-version               Show version info\n" \
         " --pb-help                  Prints help\n"
@@ -358,8 +365,8 @@ TEST_CASE("[picobench] test")
     CHECK(r.default_state_iterations() == default_iters);
     CHECK(r.default_samples() == default_samples);
 
-    r.set_check_results_across_benchmarks(true);
-    r.set_check_results_across_samples(true);
+    r.set_compare_results_across_benchmarks(true);
+    r.set_compare_results_across_samples(true);
 
     ostringstream sout;
     ostringstream serr;
@@ -575,8 +582,8 @@ TEST_CASE("[picobench] compare")
         ostringstream sout, serr;
         r.set_output_streams(sout, serr);
 
-        r.set_check_results_across_benchmarks(true);
-        r.set_check_results_across_samples(true);
+        r.set_compare_results_across_benchmarks(true);
+        r.set_compare_results_across_samples(true);
 
         auto func = [](state& s)
         {
@@ -615,7 +622,7 @@ TEST_CASE("[picobench] compare")
 
         CHECK(r.error() == no_error);
 
-        r.set_check_results_across_samples(true);
+        r.set_compare_results_across_samples(true);
 
         r.run_benchmarks(TSEED);
         r.generate_report();
@@ -635,8 +642,8 @@ TEST_CASE("[picobench] compare")
               );
 
         r.set_error(no_error);
-        r.set_check_results_across_samples(false);
-        r.set_check_results_across_benchmarks(true);
+        r.set_compare_results_across_samples(false);
+        r.set_compare_results_across_benchmarks(true);
         serr.str(string());
 
         r.run_benchmarks(TSEED);
