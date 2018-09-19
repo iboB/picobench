@@ -714,10 +714,18 @@ public:
     }
 };
 
+class null_streambuf : public std::streambuf
+{
+public:
+    virtual int overflow(int c) override { return c; }
+};
+
 struct null_stream : public std::ostream
 {
-    null_stream() {}
-} null;
+    null_stream() : std::ostream(&_buf) {}
+private:
+    null_streambuf _buf;
+} cnull;
 
 enum class report_output_format
 {
@@ -753,31 +761,31 @@ public:
 
     void set_suite(const char* name)
     {
-        m_current_suite_name = name;
+        _current_suite_name = name;
     }
 
     const char*& current_suite_name()
     {
-        return m_current_suite_name;
+        return _current_suite_name;
     }
 
     benchmarks_vector& benchmarks_for_current_suite()
     {
         for (auto& s : _suites)
         {
-            if (s.name == m_current_suite_name)
+            if (s.name == _current_suite_name)
                 return s.benchmarks;
 
-            if (s.name && m_current_suite_name && strcmp(s.name, m_current_suite_name) == 0)
+            if (s.name && _current_suite_name && strcmp(s.name, _current_suite_name) == 0)
                 return s.benchmarks;
         }
-        _suites.push_back({ m_current_suite_name, {} });
+        _suites.push_back({ _current_suite_name, {} });
         return _suites.back().benchmarks;
     }
 
 protected:
     friend class runner;
-    const char* m_current_suite_name = nullptr;
+    const char* _current_suite_name = nullptr;
     std::vector<rsuite> _suites;
 };
 
