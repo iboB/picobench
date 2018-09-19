@@ -861,14 +861,28 @@ public:
             // also identify a baseline in this loop
             // if there is no explicit one, set the first one as a baseline
             bool found_baseline = false;
-            for (auto& rb : suite.benchmarks)
+            for (auto irb = suite.benchmarks.begin(); irb != suite.benchmarks.end(); ++irb)
             {
+                auto& rb = *irb;
                 rb->_states.clear(); // clear states so we can safely call run_benchmarks multiple times
                 benchmarks.push_back(rb.get());
                 if (rb->_baseline)
                 {
                     found_baseline = true;
                 }
+
+#if !defined(PICOBENCH_STD_FUNCTION_BENCHMARKS)
+                // check for same func
+                for (auto ib = irb+1; ib != suite.benchmarks.end(); ++ib)
+                {
+                    auto& b = *ib;
+                    if (rb->_proc == b->_proc)
+                    {
+                        *_stdwarn << "Warning: " << rb->name() << " and " << b->name()
+                                 << " are benchmarks of the same function.\n";
+                    }
+                }
+#endif
             }
 
             if (!found_baseline && !suite.benchmarks.empty())

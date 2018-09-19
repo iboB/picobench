@@ -599,6 +599,13 @@ TEST_CASE("[picobench] compare")
         r.generate_report();
 
         CHECK(r.error() == no_error);
+        CHECK(sout.str() ==
+              "Warning: b1 and b2 are benchmarks of the same function.\n"
+              "Warning: b1 and b3 are benchmarks of the same function.\n"
+              "Warning: b2 and b3 are benchmarks of the same function.\n"
+              );
+        CHECK(serr.str().empty());
+
     }
 
     {
@@ -640,11 +647,14 @@ TEST_CASE("[picobench] compare")
               "Error: Two samples of b2 @64 produced different results: 96 and 99\n"
               "Error: Two samples of b2 @8192 produced different results: 8214 and 8231\n"
               );
+        CHECK(sout.str().empty());
 
         r.set_error(no_error);
         r.set_compare_results_across_samples(false);
         r.set_compare_results_across_benchmarks(true);
+        sout.str(string());
         serr.str(string());
+
 
         r.run_benchmarks(TSEED);
         r.generate_report();
@@ -657,5 +667,6 @@ TEST_CASE("[picobench] compare")
               "Error: Benchmarks b1 and b2 @4096 produce different results: 4141 and 4147\n"
               "Error: Benchmarks b1 and b2 @8192 produce different results: 8233 and 8234\n"
               );
+        CHECK(sout.str().empty());
     }
 }
