@@ -863,6 +863,7 @@ public:
             bool found_baseline = false;
             for (auto& rb : suite.benchmarks)
             {
+                rb->_states.clear(); // clear states so we can safely call run_benchmarks multiple times
                 benchmarks.push_back(rb.get());
                 if (rb->_baseline)
                 {
@@ -994,7 +995,7 @@ public:
                             {
                                 if (d.result != state.result() && !cmp(d.result, state.result()))
                                 {
-                                    *_stderr << "Error: Two samples of " << b->name() << "@" << d.dimension << " produced different results: "
+                                    *_stderr << "Error: Two samples of " << b->name() << " @" << d.dimension << " produced different results: "
                                              << d.result << " and " << state.result() << '\n';
                                     _error = error_sample_compare;
                                 }
@@ -1044,7 +1045,7 @@ public:
                         {
                             auto& f = space.second.front();
                             *_stderr << "Error: Benchmarks " << f.name << " and " << b.name
-                                     << "@ " << space.first << " produce different results: "
+                                     << " @" << space.first << " produce different results: "
                                      << result0 << " and " << b.result << '\n';
                             _error = error_benchmark_compare;
                         }
@@ -1168,6 +1169,7 @@ public:
 
     void set_should_run(bool set) { _should_run = set; }
     bool should_run() const { return _error == no_error && _should_run; }
+    void set_error(error_t e) { _error = e; }
     error_t error() const { return _error; }
 
     void set_output_streams(std::ostream& out, std::ostream& err)

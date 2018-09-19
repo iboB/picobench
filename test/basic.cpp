@@ -564,3 +564,91 @@ TEST_CASE("[picobench] test")
 
     CHECK(serr.str().empty());
 }
+
+int compare_counter = 0;
+
+TEST_CASE("[picobench] compare")
+{
+    const int TSEED = 13;
+    {
+        local_runner r;
+        ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
+
+        r.set_check_results_across_benchmarks(true);
+        r.set_check_results_across_samples(true);
+
+        auto func = [](state& s)
+        {
+            s.add_custom_duration(s.iterations());
+            s.set_result(s.iterations() * 2);
+        };
+
+        r.add_benchmark("b1", func);
+        r.add_benchmark("b2", func);
+        r.add_benchmark("b3", func);
+
+        r.run_benchmarks();
+        r.generate_report();
+
+        CHECK(r.error() == no_error);
+    }
+
+    {
+        local_runner r;
+        ostringstream sout, serr;
+        r.set_output_streams(sout, serr);
+
+        r.add_benchmark("b1", [](state& s)
+        {
+            s.add_custom_duration(s.iterations());
+            s.set_result(s.iterations() + compare_counter++);
+        });
+        r.add_benchmark("b2", [](state& s)
+        {
+            s.add_custom_duration(s.iterations());
+            s.set_result(s.iterations() + compare_counter++);
+        });
+
+        r.run_benchmarks();
+        r.generate_report();
+
+        CHECK(r.error() == no_error);
+
+        r.set_check_results_across_samples(true);
+
+        r.run_benchmarks(TSEED);
+        r.generate_report();
+
+        CHECK(r.error() == error_sample_compare);
+        CHECK(serr.str() ==
+              "Error: Two samples of b1 @4096 produced different results: 4121 and 4122\n"
+              "Error: Two samples of b1 @8 produced different results: 36 and 37\n"
+              "Error: Two samples of b1 @64 produced different results: 88 and 100\n"
+              "Error: Two samples of b1 @512 produced different results: 545 and 549\n"
+              "Error: Two samples of b1 @8192 produced different results: 8213 and 8230\n"
+              "Error: Two samples of b2 @8 produced different results: 31 and 35\n"
+              "Error: Two samples of b2 @512 produced different results: 532 and 542\n"
+              "Error: Two samples of b2 @4096 produced different results: 4127 and 4130\n"
+              "Error: Two samples of b2 @64 produced different results: 96 and 99\n"
+              "Error: Two samples of b2 @8192 produced different results: 8214 and 8231\n"
+              );
+
+        r.set_error(no_error);
+        r.set_check_results_across_samples(false);
+        r.set_check_results_across_benchmarks(true);
+        serr.str(string());
+
+        r.run_benchmarks(TSEED);
+        r.generate_report();
+
+        CHECK(r.error() == error_benchmark_compare);
+        CHECK(serr.str() ==
+              "Error: Benchmarks b1 and b2 @8 produce different results: 56 and 51\n"
+              "Error: Benchmarks b1 and b2 @64 produce different results: 108 and 116\n"
+              "Error: Benchmarks b1 and b2 @512 produce different results: 565 and 552\n"
+              "Error: Benchmarks b1 and b2 @4096 produce different results: 4141 and 4147\n"
+              "Error: Benchmarks b1 and b2 @8192 produce different results: 8233 and 8234\n"
+              );
+    }
+}
