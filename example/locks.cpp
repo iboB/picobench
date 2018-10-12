@@ -1,16 +1,15 @@
 #define PICOBENCH_DEBUG
 #define PICOBENCH_IMPLEMENT_WITH_MAIN
-#define PICOBENCH_DEFAULT_ITERATIONS {1000, 10000, 100000}
+#define PICOBENCH_DEFAULT_ITERATIONS {1000, 10000, 100000, 1000000}
 #include "picobench/picobench.hpp"
 
 #include <future>
 #include <mutex>
 #include <atomic>
 #include <functional>
+#include <immintrin.h>
 
 volatile int sum;
-
-std::mutex mut;
 
 template <typename Locker>
 int calc_sum(bool inc, const int n, Locker& lock)
@@ -36,13 +35,15 @@ void bench(picobench::state& s)
     s.set_result(picobench::result_t(sum));
 }
 
+template <void Yield()>
 struct spinlock
 {
     void lock()
     {
         while(std::atomic_flag_test_and_set_explicit(
             &spin_flag,
-            std::memory_order_acquire));
+            std::memory_order_acquire))
+            Yield();
     }
 
     void unlock()
@@ -53,9 +54,17 @@ struct spinlock
     }
 
     std::atomic_flag spin_flag = ATOMIC_FLAG_INIT;
-} spin;
+};
+
+void noop() {}
+
+using noop_spin = spinlock<noop>;
+using pause_spin = spinlock<_mm_pause>;
+using yield_spin = spinlock<std::this_thread::yield>;
 
 using namespace std;
 
 PICOBENCH(bench<mutex>);
-PICOBENCH(bench<spinlock>);
+PICOBENCH(bench<noop_spin>);
+PICOBENCH(bench<pause_spin>);
+PICOBENCH(bench<yield_spin>);
