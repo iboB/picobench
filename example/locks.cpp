@@ -56,10 +56,11 @@ struct spinlock
     std::atomic_flag spin_flag = ATOMIC_FLAG_INIT;
 };
 
-void noop() {}
+inline void noop() {}
+inline void pause() { _mm_pause(); }
 
 using noop_spin = spinlock<noop>;
-using pause_spin = spinlock<_mm_pause>;
+using pause_spin = spinlock<pause>;
 using yield_spin = spinlock<std::this_thread::yield>;
 
 using namespace std;
