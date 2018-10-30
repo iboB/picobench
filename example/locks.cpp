@@ -35,7 +35,7 @@ void bench(picobench::state& s)
     s.set_result(picobench::result_t(sum));
 }
 
-template <void Yield()>
+template <void (*Yield)()>
 struct spinlock
 {
     void lock()
