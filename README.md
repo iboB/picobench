@@ -115,9 +115,19 @@ If you write your own `main` function, you need to add the following to it in or
     picobench::runner runner;
     // Optionally parse command line
     runner.parse_cmd_line(argc, argv);
+    return r.run();
+```
+
+For even finer control of the run, instead of `run` you might call the functions explicitly:
+
+```c++
+    picobench::runner runner;
+    // Optionally parse command line
+    runner.parse_cmd_line(argc, argv);
     if (runner.should_run()) // Cmd line may have disabled benchmarks
     {
-        auto report = runner.run_benchmarks();
+        runner.run_benchmarks();
+        auto report = runner.generate_report();
         // Then to output the data in the report use
         report.to_text(std::cout); // Default
         // or
@@ -160,12 +170,61 @@ Sometimes the code being benchmarked is very sensitive to external factors such 
 
 Note that the time written to the report is the one of the *fastest* sample.
 
+### Benchmark results
+
+You can set a result for a benchmark using `state::set_result`. Here is an example of this:
+
+```c++
+void my_benchmark(picobench::state& s)
+{
+    int sum = 0;
+    for (auto i : s)
+    {
+        sum += myfunc(*i);
+    }
+    s.set_result(sum);
+}
+```
+
+By default results are not used. You can think of them as data sinks. Optionally however you can use them in two ways.
+
+* Compare across samples: By calling `runner::set_compare_results_across_samples` you will make the library compare results between the different samples of a benchmark and trigger an error if they differ.
+* Compare across benchmarks: By calling `runner::set_compare_results_across_benchmarks` you can make a more complex comparison which will compare the results from all benchmarks in a suite. You can use this if you compare different ways of calculating the same result.
+
+By default results are compared by simple equality, but you can introduce you own function as an argument to `runner::generate_report` here is an example:
+
+```c++
+void my_benchmark(picobench::state& s)
+{
+    my_vector2 result;
+    for (auto _ : s)
+        result += my_vector_op();
+    s.set_result(
+        // new to preserve value past this function
+        reinterpret_cast<result_t>(new my_vector2(result))); 
+}
+
+bool compare_vectors(result_t a, result_t b)
+{
+    auto v1 = reinterpret_cast<my_vector2*>(a);
+    auto v2 = reinterpret_cast<my_vector2*>(b);
+    return v1->x == v2->x && v1->y == v2->y;
+}
+
+...
+
+auto report = runner.generate_report(compare_vectors);
+
+```
+
+
 ### Other options
 
 Other characteristics of a benchmark are:
 
 * **Iterations**: (or "problem spaces") a vector of integers describing the set of iterations to be made for a benchmark. Set with `.iterations({i1, i2, i3...})`. The default is {8, 64, 512, 4096, 8196}.
 * **Label**: a string which is used for this benchmark in the report instead of the function name. Set with `.label("my label")`
+* **User data**: a user defined number (`uintptr_t`) assinged to a benchmark which can be accessed by `state::user_data`
 
 You can combine the options by concatenating them like this: `PICOBENCH(my_func).label("My Function").samples(2).iterations({1000, 10000, 50000});`
 
@@ -180,6 +239,7 @@ If you parse the command line or use the library-provided `main` function you ca
 If you're using the library-provided `main` function, it will also handle the following command line arguments:
 * `--out-fmt=<txt|con|csv>` - sets the output report format to either full text, concise text or csv.
 * `--output=<filename>` - writes the output report to a given file
+* `--compare-results` - will compare results from benchmarks and trigger an error if they don't match.
 
 ### Misc
 
