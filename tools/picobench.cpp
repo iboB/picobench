@@ -183,6 +183,7 @@ int main(int argc, char* argv[])
 
     runner r;
     r.set_default_state_iterations({ 1 });
+    r.set_default_samples(1);
 
     r.add_cmd_opt("-bfile=", "<filename>", "Set a file which lists benchmarks", parse_bfile);
 
