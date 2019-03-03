@@ -935,8 +935,7 @@ public:
         CPU_ZERO(&cpuset);
         CPU_SET(0, &cpuset);
 
-        pthread_t cur = pthread_self();
-        pthread_setaffinity_np(cur, sizeof(cpu_set_t), &cpuset);
+        sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
 #endif
         }
 #endif

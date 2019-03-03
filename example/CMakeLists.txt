@@ -8,4 +8,7 @@ set_target_properties(basic PROPERTIES FOLDER examples)
 
 add_executable(locks locks.cpp)
 target_link_libraries(locks picobench)
+if(NOT MSVC)
+    target_link_libraries(locks pthread)
+endif()
 set_target_properties(locks PROPERTIES FOLDER examples)

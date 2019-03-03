@@ -25,12 +25,6 @@ target_compile_features(picobench INTERFACE
     cxx_right_angle_brackets
 )
 
-if(PICOBENCH_BIND_TO_ONE_CORE AND NOT MSVC)
-    # link with pthread for pthread_setaffinity_np
-    target_link_libraries(picobench INTERFACE pthread)
-endif()
-
-
 if(PICOBENCH_BUILD_TOOLS)
     add_subdirectory(tools)
 endif()
