@@ -115,7 +115,7 @@ If you write your own `main` function, you need to add the following to it in or
     picobench::runner runner;
     // Optionally parse command line
     runner.parse_cmd_line(argc, argv);
-    return r.run();
+    return runner.run();
 ```
 
 For even finer control of the run, instead of `run` you might call the functions explicitly:
