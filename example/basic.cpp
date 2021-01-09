@@ -14,7 +14,7 @@ void rand_vector(picobench::state& s)
         v.push_back(rand());
     }
 }
-PICOBENCH(rand_vector);
+PICOBENCH(rand_vector).user_data({1, 2, 3, 4, 5});
 
 void rand_vector_reserve(picobench::state& s)
 {
