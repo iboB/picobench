@@ -1,4 +1,5 @@
 build/
 
-# qtcreator
-*.user
+# ides
+.vs/
+.vscode/
