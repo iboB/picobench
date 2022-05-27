@@ -100,7 +100,7 @@ void my_func2();
 static void benchmark_my_func2(picobench::state& s)
 {
     custom_init(); // Some user-defined initialization
-    picobench::scope scope(s); // Constructor starts measurement. Destrucror stops it
+    picobench::scope scope(s); // Constructor starts measurement. Destructor stops it
     for (int i=0; i<s.iterations(); ++i)
         my_func2();
 }
