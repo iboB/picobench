@@ -1,4 +1,4 @@
-// picobench v2.00
+// picobench v2.01
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
