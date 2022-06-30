@@ -30,6 +30,7 @@ if(PICOBENCH_BUILD_TOOLS)
 endif()
 
 if(PICOBENCH_BUILD_TESTS)
+    enable_testing()
     add_subdirectory(test)
 endif()
 

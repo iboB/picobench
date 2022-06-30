@@ -1,14 +1,11 @@
-cmake_minimum_required(VERSION 3.2.2)
+find_package(Threads REQUIRED)
 
-project(picobench-example)
+macro(pb_example name)
+    set(tgt picobench-example-${name})
+    add_executable(${tgt} ${ARGN})
+    target_link_libraries(${tgt} picobench ${CMAKE_THREAD_LIBS_INI})
+    set_target_properties(${tgt} PROPERTIES FOLDER examples)
+endmacro()
 
-add_executable(basic basic.cpp)
-target_link_libraries(basic picobench)
-set_target_properties(basic PROPERTIES FOLDER examples)
-
-add_executable(locks locks.cpp)
-target_link_libraries(locks picobench)
-if(NOT MSVC)
-    target_link_libraries(locks pthread)
-endif()
-set_target_properties(locks PROPERTIES FOLDER examples)
+pb_example(basic basic.cpp)
+pb_example(locks locks.cpp)
