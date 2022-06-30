@@ -1,4 +1,4 @@
-// picobench v2.01
+// picobench v2.02
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -28,6 +28,7 @@
 //
 //                  VERSION HISTORY
 //
+//  2.02 (2022-xx-xx) * Fixed same-func warning if user data is different
 //  2.01 (2019-03-03) * Fixed android build when binding to a signle core
 //                    * Minor doc fixes
 //  2.00 (2018-10-30) * Breaking change! runner::run_benchmarks doesn't return
@@ -877,7 +878,7 @@ public:
                 for (auto ib = irb+1; ib != suite.benchmarks.end(); ++ib)
                 {
                     auto& b = *ib;
-                    if (rb->_proc == b->_proc)
+                    if (rb->_proc == b->_proc && rb->_user_data == b->_user_data)
                     {
                         *_stdwarn << "Warning: " << rb->name() << " and " << b->name()
                                  << " are benchmarks of the same function.\n";

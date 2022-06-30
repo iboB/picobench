@@ -591,6 +591,7 @@ TEST_CASE("[picobench] compare")
 
         r.add_benchmark("b1", func);
         r.add_benchmark("b2", func);
+        r.add_benchmark("b2-twist", func).user_data(1);
         r.add_benchmark("b3", func);
 
         r.run_benchmarks();
