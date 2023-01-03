@@ -3,9 +3,11 @@
 //
 // A micro microbenchmarking library in a single header file
 //
+// SPDX-License-Identifier: MIT
+//
 // MIT License
 //
-// Copyright(c) 2017-2018 Borislav Stanimirov
+// Copyright(c) 2017-2023 Borislav Stanimirov
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -28,7 +30,7 @@
 //
 //                  VERSION HISTORY
 //
-//  2.02 (2022-xx-xx) * Fixed same-func warning if user data is different
+//  2.02 (2023-xx-xx) * Fixed same-func warning if user data is different
 //  2.01 (2019-03-03) * Fixed android build when binding to a signle core
 //                    * Minor doc fixes
 //  2.00 (2018-10-30) * Breaking change! runner::run_benchmarks doesn't return
@@ -114,8 +116,8 @@
 #   include <functional>
 #endif
 
-#define PICOBENCH_VERSION 2.01
-#define PICOBENCH_VERSION_STR "2.01"
+#define PICOBENCH_VERSION 2.02
+#define PICOBENCH_VERSION_STR "2.02"
 
 #if defined(PICOBENCH_DEBUG)
 #   include <cassert>
