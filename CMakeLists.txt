@@ -14,16 +14,8 @@ option(PICOBENCH_BIND_TO_ONE_CORE "picobench: bind runner to one core (better pr
 mark_as_advanced(PICOBENCH_BUILD_TOOLS PICOBENCH_BUILD_TESTS PICOBENCH_BUILD_EXAMPLES PICOBENCH_DONT_BIND_TO_ONE_CORE)
 
 add_library(picobench INTERFACE)
-target_sources(picobench INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include/picobench/picobench.hpp)
+add_library(picobench::picobench ALIAS picobench)
 target_include_directories(picobench INTERFACE include)
-target_compile_features(picobench INTERFACE
-    cxx_auto_type
-    cxx_delegating_constructors
-    cxx_lambdas
-    cxx_override
-    cxx_range_for
-    cxx_right_angle_brackets
-)
 
 if(PICOBENCH_BUILD_TOOLS)
     add_subdirectory(tools)
