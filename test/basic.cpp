@@ -121,11 +121,11 @@ TEST_CASE("[picobench] test utils")
 TEST_CASE("[picobench] picostring")
 {
     picostring str("test");
-    CHECK(str.str == "test");
+    CHECK(str == "test");
     CHECK(str.len == 4);
-    CHECK(!str.cmp("tes"));
-    CHECK(str.cmp("test"));
-    CHECK(str.cmp("test123"));
+    CHECK(!str.is_start_of("tes"));
+    CHECK(str.is_start_of("test"));
+    CHECK(str.is_start_of("test123"));
 }
 
 TEST_CASE("[picobench] state")
@@ -216,7 +216,7 @@ TEST_CASE("[picobench] cmd line")
         CHECK(r.error() == 0);
         CHECK(r.default_samples() == 54);
         CHECK(r.default_state_iterations() == vector<int>({ 1000, 2000, 3000 }));
-        CHECK(r.preferred_output_filename() == "foo.csv");
+        CHECK(strcmp(r.preferred_output_filename(), "foo.csv") == 0);
         CHECK(r.preferred_output_format() == report_output_format::csv);
         CHECK(r.compare_results_across_benchmarks());
         CHECK(r.compare_results_across_samples());
@@ -328,7 +328,7 @@ TEST_CASE("[picobench] cmd line")
 
         auto handler_bi = [](uintptr_t data, const char* cmd) -> bool {
             CHECK(data == 98);
-            CHECK(cmd == "123");
+            CHECK(strcmp(cmd, "123") == 0);
             return true;
         };
 
@@ -384,14 +384,14 @@ TEST_CASE("[picobench] test")
     CHECK(!report.find_suite("asdf"));
 
     auto& a = find_suite("test a", report);
-    CHECK(a.name == "test a");
+    CHECK(strcmp(a.name, "test a") == 0);
     CHECK(a.benchmarks.size() == 3);
     CHECK(!a.find_benchmark("b_a"));
 
     auto& aa = a.benchmarks[0];
     CHECK(a.find_baseline() == &aa);
     CHECK(a.find_benchmark("a_a") == &aa);
-    CHECK(aa.name == "a_a");
+    CHECK(strcmp(aa.name, "a_a") == 0);
     CHECK(aa.is_baseline);
     CHECK(aa.data.size() == r.default_state_iterations().size());
 
@@ -405,7 +405,7 @@ TEST_CASE("[picobench] test")
 
     auto& ab = a.benchmarks[1];
     CHECK(a.find_benchmark("a_b") == &ab);
-    CHECK(ab.name == "a_b");
+    CHECK(strcmp(ab.name, "a_b") == 0);
     CHECK(!ab.is_baseline);
     CHECK(ab.data.size() == r.default_state_iterations().size());
 
@@ -426,7 +426,7 @@ TEST_CASE("[picobench] test")
 
     auto& ac = a.benchmarks[2];
     CHECK(a.find_benchmark("a_c") == &ac);
-    CHECK(ac.name == "a_c");
+    CHECK(strcmp(ac.name, "a_c") == 0);
     CHECK(!ac.is_baseline);
     CHECK(ac.data.size() == r.default_state_iterations().size());
 
@@ -439,12 +439,12 @@ TEST_CASE("[picobench] test")
     }
 
     auto& b = find_suite("test b", report);
-    CHECK(b.name == "test b");
+    CHECK(strcmp(b.name, "test b") == 0);
     CHECK(b.benchmarks.size() == 2);
     CHECK(!b.find_benchmark("b_b"));
 
     auto& ba = b.benchmarks[0];
-    CHECK(ba.name == "b_a");
+    CHECK(strcmp(ba.name, "b_a") == 0);
     CHECK(!ba.is_baseline);
     CHECK(ba.data.size() == 3);
 
@@ -460,7 +460,7 @@ TEST_CASE("[picobench] test")
     auto& bb = b.benchmarks[1];
     CHECK(b.find_benchmark("something else") == &bb);
     CHECK(b.find_baseline() == &bb);
-    CHECK(bb.name == "something else");
+    CHECK(strcmp(bb.name, "something else") == 0);
     CHECK(bb.is_baseline);
     CHECK(bb.data.size() == 3);
 

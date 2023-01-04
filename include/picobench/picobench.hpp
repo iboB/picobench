@@ -703,18 +703,28 @@ class picostring
 public:
     picostring() = default;
     explicit picostring(const char* text)
-    {
-        str = text;
-        len = int(strlen(text));
-    }
+        : str(text)
+        , len(int(strlen(text)))
+    {}
 
     const char* str;
     int len = 0;
 
     // checks whether other begins with this string
-    bool cmp(const char* other) const
+    bool is_start_of(const char* other) const
     {
         return strncmp(str, other, size_t(len)) == 0;
+    }
+
+    bool operator==(const picostring& other) const
+    {
+        if (len != other.len) return false;
+        return strncmp(str, other.str, size_t(len)) == 0;
+    }
+
+    bool operator==(const char* other) const
+    {
+        return operator==(picostring(other));
     }
 };
 
@@ -1144,7 +1154,7 @@ public:
 
         for (int i = 1; i < argc; ++i)
         {
-            if (!_cmd_prefix.cmp(argv[i]))
+            if (!_cmd_prefix.is_start_of(argv[i]))
                 continue;
 
             auto arg = argv[i] + _cmd_prefix.len;
@@ -1152,7 +1162,7 @@ public:
             bool found = false;
             for (auto& opt : _opts)
             {
-                if (opt.cmd.cmp(arg))
+                if (opt.cmd.is_start_of(arg))
                 {
                     found = true;
                     bool success = false;

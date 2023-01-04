@@ -43,11 +43,11 @@ TEST_CASE("[picobench] multi cpp test")
     }
 
     auto& a = find_suite("suite a", report);
-    CHECK(a.name == "suite a");
+    CHECK(strcmp(a.name, "suite a") == 0);
     CHECK(a.benchmarks.size() == 2);
 
     auto& aa = a.benchmarks[0];
-    CHECK(aa.name == "a_a");
+    CHECK(strcmp(aa.name, "a_a") == 0);
     CHECK(aa.is_baseline);
     CHECK(aa.data.size() == iters.size());
 
@@ -60,7 +60,7 @@ TEST_CASE("[picobench] multi cpp test")
     }
 
     auto& ab = a.benchmarks[1];
-    CHECK(ab.name == "a_b");
+    CHECK(strcmp(ab.name, "a_b") == 0);
     CHECK(!ab.is_baseline);
     CHECK(ab.data.size() == iters.size());
 
@@ -73,11 +73,11 @@ TEST_CASE("[picobench] multi cpp test")
     }
 
     auto& b = find_suite("suite b", report);
-    CHECK(b.name == "suite b");
+    CHECK(strcmp(b.name, "suite b") == 0);
     CHECK(b.benchmarks.size() == 4);
 
     auto& aab = b.benchmarks[0].name[0] == 'a' ? b.benchmarks[0] : b.benchmarks[2];
-    CHECK(aab.name == "a_a");
+    CHECK(strcmp(aab.name, "a_a") == 0);
     CHECK(!aab.is_baseline);
     CHECK(aab.data.size() == iters.size());
 
@@ -90,7 +90,7 @@ TEST_CASE("[picobench] multi cpp test")
     }
 
     auto& abb = b.benchmarks[0].name[0] == 'a' ? b.benchmarks[1] : b.benchmarks[3];
-    CHECK(abb.name == "a_b");
+    CHECK(strcmp(abb.name, "a_b") == 0);
     CHECK(abb.is_baseline);
     CHECK(abb.data.size() == iters.size());
 
@@ -103,7 +103,7 @@ TEST_CASE("[picobench] multi cpp test")
     }
 
     auto& bab = b.benchmarks[0].name[0] == 'a' ? b.benchmarks[2] : b.benchmarks[0];
-    CHECK(bab.name == "b_a");
+    CHECK(strcmp(bab.name, "b_a") == 0);
     CHECK(!bab.is_baseline);
     CHECK(bab.data.size() == iters.size());
 
@@ -116,7 +116,7 @@ TEST_CASE("[picobench] multi cpp test")
     }
 
     auto& bbb = b.benchmarks[0].name[0] == 'a' ? b.benchmarks[3] : b.benchmarks[1];
-    CHECK(bbb.name == "b_b");
+    CHECK(strcmp(bbb.name, "b_b") == 0);
     CHECK(!bbb.is_baseline);
     CHECK(bbb.data.size() == iters.size());
 

@@ -5,7 +5,6 @@ CPMAddPackage(
     NAME doctest-lib
     VERSION 2.4.8a
     GITHUB_REPOSITORY iboB/doctest-lib
-    OPTIONS "DOCTEST_LIB_TREAT_CHAR_STAR_AS_STRING ON"
 )
 CPMAddPackage(gh:iboB/icm@1.3.3)
 find_package(Threads REQUIRED)
