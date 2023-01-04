@@ -46,7 +46,7 @@ The output of this benchmark might look like this:
 
 ```
 ===============================================================================
-   Name (baseline is *)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second
+    Name (* = baseline)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second
 ===============================================================================
             rand_vector * |       8 |     0.001 |     167 |      - |  5974607.9
       rand_vector_reserve |       8 |     0.000 |      55 |  0.329 | 18181818.1
@@ -143,7 +143,7 @@ As mentioned above `report.to_text_concise(ostream)` outputs a report without th
 
 ```
 ===============================================================================
-   Name (baseline is *)   |  ns/op  | Baseline |  Ops/second
+    Name (* = baseline)   |  ns/op  | Baseline |  Ops/second
 ===============================================================================
             rand_vector * |      36 |        - |  27427782.7
       rand_vector_reserve |      24 |    0.667 |  40754573.7

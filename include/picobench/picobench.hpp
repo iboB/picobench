@@ -31,6 +31,8 @@
 //                  VERSION HISTORY
 //
 //  2.02 (2023-xx-xx) * Fixed same-func warning if user data is different
+//                    * Changed marking of baseline in human-readable reports
+//                    * Minor internal changes in strings
 //  2.01 (2019-03-03) * Fixed android build when binding to a signle core
 //                    * Minor doc fixes
 //  2.00 (2018-10-30) * Breaking change! runner::run_benchmarks doesn't return
@@ -445,7 +447,7 @@ public:
 
             line(out);
             out <<
-                "   Name (baseline is *)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n";
+                "    Name (* = baseline)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n";
             line(out);
 
             auto problem_space_view = get_problem_space_view(suite);
@@ -530,7 +532,7 @@ public:
             line(out);
 
             out <<
-                "   Name (baseline is *)   |  ns/op  | Baseline |  Ops/second\n";
+                "    Name (* = baseline)   |  ns/op  | Baseline |  Ops/second\n";
 
             line(out);
 
