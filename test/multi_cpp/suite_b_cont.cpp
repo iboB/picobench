@@ -10,7 +10,7 @@ static void b_a(picobench::state& s)
     ++g_num_samples[s.iterations()];
     for (auto _ : s)
     {
-        picobench::this_thread_sleep_for_ns(20);
+        picobench::test::this_thread_sleep_for_ns(20);
     }
 }
 PICOBENCH(b_a);
@@ -18,7 +18,7 @@ PICOBENCH(b_a);
 static void b_b(picobench::state& s)
 {
     s.start_timer();
-    picobench::this_thread_sleep_for_ns(s.iterations() * size_t(25));
+    picobench::test::this_thread_sleep_for_ns(s.iterations() * size_t(25));
     s.stop_timer();
 }
 PICOBENCH(b_b);

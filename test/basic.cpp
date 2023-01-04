@@ -17,7 +17,7 @@ static void a_a(picobench::state& s)
 {
     for (auto _ : s)
     {
-        this_thread_sleep_for_ns(10);
+        test::this_thread_sleep_for_ns(10);
     }
     s.set_result(s.iterations() * 2);
 }
@@ -36,7 +36,7 @@ static void a_b(picobench::state& s)
     ++a_b_samples[s.iterations()];
     for (auto _ : s)
     {
-        this_thread_sleep_for_ns(time);
+        test::this_thread_sleep_for_ns(time);
     }
     s.set_result(s.iterations() * 2);
 }
@@ -45,7 +45,7 @@ PICOBENCH(a_b);
 static void a_c(picobench::state& s)
 {
     s.start_timer();
-    this_thread_sleep_for_ns((s.iterations() - 1) * 20);
+    test::this_thread_sleep_for_ns((s.iterations() - 1) * 20);
     s.stop_timer();
 
     s.add_custom_duration(20);
@@ -62,12 +62,12 @@ static void b_a(picobench::state& s)
     CHECK(s.user_data() == 9088);
     for (auto _ : s)
     {
-        this_thread_sleep_for_ns(75);
+        test::this_thread_sleep_for_ns(75);
     }
 }
 PICOBENCH(b_a)
-    .iterations({ 20, 30, 50 })
-    .user_data(9088);
+.iterations({20, 30, 50})
+.user_data(9088);
 
 map<int, int> b_b_samples;
 
@@ -82,13 +82,13 @@ static void b_b(picobench::state& s)
 
     ++b_b_samples[s.iterations()];
     picobench::scope scope(s);
-    this_thread_sleep_for_ns(s.iterations() * time);
+    test::this_thread_sleep_for_ns(s.iterations() * time);
 }
 PICOBENCH(b_b)
-    .baseline()
-    .label("something else")
-    .samples(15)
-    .iterations({ 10, 20, 30 });
+.baseline()
+.label("something else")
+.samples(15)
+.iterations({10, 20, 30});
 
 const picobench::report::suite& find_suite(const char* s, const picobench::report& r)
 {
@@ -101,18 +101,18 @@ const picobench::report::suite& find_suite(const char* s, const picobench::repor
 
 TEST_CASE("[picobench] test utils")
 {
-    const char* ar[] = { "test", "123", "asdf" };
+    const char* ar[] = {"test", "123", "asdf"};
     CHECK(cntof(ar) == 3);
 
     auto start = high_res_clock::now();
-    this_thread_sleep_for_ns(1234);
+    test::this_thread_sleep_for_ns(1234);
     auto end = high_res_clock::now();
 
     auto duration = end - start;
     CHECK(duration == std::chrono::nanoseconds(1234));
 
     start = high_res_clock::now();
-    this_thread_sleep_for(std::chrono::milliseconds(987));
+    test::this_thread_sleep_for(std::chrono::milliseconds(987));
     end = high_res_clock::now();
     duration = end - start;
     CHECK(duration == std::chrono::milliseconds(987));
@@ -139,7 +139,7 @@ TEST_CASE("[picobench] state")
     {
         CHECK(_ == i);
         ++i;
-        this_thread_sleep_for_ns(1);
+        test::this_thread_sleep_for_ns(1);
     }
     CHECK(s0.duration_ns() == 3);
     s0.add_custom_duration(5);
@@ -154,7 +154,7 @@ TEST_CASE("[picobench] state")
     {
         CHECK(*it == i);
         ++i;
-        this_thread_sleep_for_ns(2);
+        test::this_thread_sleep_for_ns(2);
     }
     CHECK(s.duration_ns() == 4);
 }

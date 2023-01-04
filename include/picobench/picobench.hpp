@@ -1424,6 +1424,9 @@ int main(int argc, char* argv[])
 // fake time keeping functions for the tests
 namespace picobench
 {
+namespace test
+{
+
 
 void this_thread_sleep_for_ns(uint64_t ns);
 
@@ -1444,13 +1447,13 @@ void this_thread_sleep_for_ns(uint64_t ns)
     the_time.now += ns;
 }
 
+} // namespace test
+
 high_res_clock::time_point high_res_clock::now()
 {
-    auto ret = time_point(duration(the_time.now));
+    auto ret = time_point(duration(test::the_time.now));
     return ret;
-}
 #endif
-
+} // dual purpose closing brace
 }
-
 #endif
