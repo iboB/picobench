@@ -1,7 +1,7 @@
 # picobench
 [![Language](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Standard](https://img.shields.io/badge/C%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-[![Build Status](https://travis-ci.org/iboB/picobench.svg?branch=master)](https://travis-ci.org/iboB/picobench)
+[![Test](https://github.com/iboB/picobench/actions/workflows/test.yml/badge.svg)](https://github.com/iboB/picobench/actions/workflows/test.yml)
 
 picobench is a tiny (micro) microbenchmarking library in a single header file.
 
