@@ -30,7 +30,7 @@
 //
 //                  VERSION HISTORY
 //
-//  2.02 (2023-xx-xx) * Fixed same-func warning if user data is different
+//  2.02 (2023-02-16) * Fixed same-func warning if user data is different
 //                    * Macro PICOBENCH_NAMESPACE to change namespace
 //                    * Changed marking of baseline in human-readable reports
 //                    * Minor internal changes in strings
