@@ -1,0 +1,34 @@
+# Copyright (c) Borislav Stanimirov
+# SPDX-License-Identifier: MIT
+#
+name: Test
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-20.04, windows-latest, macos-latest]
+        type: [Debug, RelWithDebInfo]
+    steps:
+      - name: Clone
+        uses: actions/checkout@v3
+      - name: VC Vars
+        # Setup vcvars on Windows
+        # MSVC's address sanitizer attaches dependencies to several DLLs which are not in PATH
+        # vcvars will add them to PATH and allow msvc asan executables to run
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Configure
+        run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DSAN_ADDR=1
+      - name: Build
+        run: cmake --build . --config ${{ matrix.type }}
+      - name: Test
+        run: ctest -C ${{ matrix.type }} --output-on-failure
+      - name: Example
+        run: cmake --build . --config Release --target=picobench-run-example-basic
+      # TODO: ./picobench "sleep 0.3" "sleep 0.22"
