@@ -2,20 +2,20 @@
 
 PICOBENCH_SUITE("suite a");
 
-static void a_a(picobench::state& s)
+static void a_a(pb::state& s)
 {
     for (auto _ : s)
     {
-        picobench::test::this_thread_sleep_for_ns(10);
+        pb::test::this_thread_sleep_for_ns(10);
     }
 }
 PICOBENCH(a_a);
 
-static void a_b(picobench::state& s)
+static void a_b(pb::state& s)
 {
     for (auto _ : s)
     {
-        picobench::test::this_thread_sleep_for_ns(15);
+        pb::test::this_thread_sleep_for_ns(15);
     }
 }
 PICOBENCH(a_b);

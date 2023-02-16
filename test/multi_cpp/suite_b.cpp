@@ -2,19 +2,19 @@
 
 PICOBENCH_SUITE("suite b");
 
-static void a_a(picobench::state& s)
+static void a_a(pb::state& s)
 {
     for (auto _ : s)
     {
-        picobench::test::this_thread_sleep_for_ns(15);
+        pb::test::this_thread_sleep_for_ns(15);
     }
 }
 PICOBENCH(a_a);
 
-static void a_b(size_t stime, picobench::state& s)
+static void a_b(size_t stime, pb::state& s)
 {
     s.start_timer();
-    picobench::test::this_thread_sleep_for_ns(s.iterations() * size_t(stime));
+    pb::test::this_thread_sleep_for_ns(s.iterations() * size_t(stime));
     s.stop_timer();
 }
-PICOBENCH([](picobench::state& s) { a_b(30, s); }).label("a_b").baseline();
+PICOBENCH([](pb::state& s) { a_b(30, s); }).label("a_b").baseline();

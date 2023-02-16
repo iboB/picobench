@@ -11,7 +11,7 @@ using namespace std;
 
 std::map<int, int> g_num_samples;
 
-const picobench::report::suite& find_suite(const char* s, const picobench::report& r)
+const pb::report::suite& find_suite(const char* s, const pb::report& r)
 {
     auto suite = r.find_suite(s);
     REQUIRE(suite);
@@ -20,7 +20,7 @@ const picobench::report::suite& find_suite(const char* s, const picobench::repor
 
 TEST_CASE("[picobench] multi cpp test")
 {
-    using namespace picobench;
+    using namespace pb;
     runner r;
 
     const vector<int> iters = { 100, 2000, 5000 };

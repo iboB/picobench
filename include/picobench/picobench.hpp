@@ -31,6 +31,7 @@
 //                  VERSION HISTORY
 //
 //  2.02 (2023-xx-xx) * Fixed same-func warning if user data is different
+//                    * Macro PICOBENCH_NAMESPACE to change namespace
 //                    * Changed marking of baseline in human-readable reports
 //                    * Minor internal changes in strings
 //  2.01 (2019-03-03) * Fixed android build when binding to a signle core
@@ -136,7 +137,11 @@
 #   define PICOBENCH_INLINE  inline
 #endif
 
-namespace picobench
+#if !defined(PICOBENCH_NAMESPACE)
+#   define PICOBENCH_NAMESPACE picobench
+#endif
+
+namespace PICOBENCH_NAMESPACE
 {
 
 #if defined(_MSC_VER) || defined(__MINGW32__) || defined(PICOBENCH_TEST)
@@ -326,11 +331,11 @@ public:
 
 #define PICOBENCH_SUITE(name) \
     static int I_PICOBENCH_PP_CAT(picobench_suite, __LINE__) = \
-    picobench::global_registry::set_bench_suite(name)
+    PICOBENCH_NAMESPACE::global_registry::set_bench_suite(name)
 
 #define PICOBENCH(func) \
     static auto& I_PICOBENCH_PP_CAT(picobench, __LINE__) = \
-    picobench::global_registry::new_benchmark(#func, func)
+    PICOBENCH_NAMESPACE::global_registry::new_benchmark(#func, func)
 
 #if defined(PICOBENCH_IMPLEMENT_WITH_MAIN)
 #   define PICOBENCH_IMPLEMENT
@@ -361,7 +366,7 @@ public:
 #   endif
 #endif
 
-namespace picobench
+namespace PICOBENCH_NAMESPACE
 {
 
 // namespace
@@ -845,13 +850,13 @@ public:
 
             switch (preferred_output_format())
             {
-            case picobench::report_output_format::text:
+            case report_output_format::text:
                 report.to_text(*out);
                 break;
-            case picobench::report_output_format::concise_text:
+            case report_output_format::concise_text:
                 report.to_text_concise(*out);
                 break;
-            case picobench::report_output_format::csv:
+            case report_output_format::csv:
                 report.to_csv(*out);
                 break;
             }
@@ -1425,7 +1430,7 @@ high_res_clock::time_point high_res_clock::now()
 #if defined(PICOBENCH_IMPLEMENT_MAIN)
 int main(int argc, char* argv[])
 {
-    picobench::runner r;
+    PICOBENCH_NAMESPACE::runner r;
     r.parse_cmd_line(argc, argv);
     return r.run();
 }
@@ -1434,7 +1439,7 @@ int main(int argc, char* argv[])
 #if defined(PICOBENCH_TEST)
 
 // fake time keeping functions for the tests
-namespace picobench
+namespace PICOBENCH_NAMESPACE
 {
 namespace test
 {
