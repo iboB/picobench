@@ -1,4 +1,4 @@
-// picobench v2.02
+// picobench v2.03
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -30,6 +30,7 @@
 //
 //                  VERSION HISTORY
 //
+//  2.03 (2023-03-20) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
 //  2.02 (2023-02-16) * Fixed same-func warning if user data is different
 //                    * Macro PICOBENCH_NAMESPACE to change namespace
 //                    * Changed marking of baseline in human-readable reports
@@ -326,15 +327,22 @@ public:
 
 }
 
+// Optionally define PICOBENCH_UNIQUE_SYM_SUFFIX to replace __LINE__ with something
+// non standard like __COUNTER__ in case you need multiple PICOBENCH macros in a
+// macro of yours
+#if !defined(PICOBENCH_UNIQUE_SYM_SUFFIX)
+#define PICOBENCH_UNIQUE_SYM_SUFFIX __LINE__
+#endif
+
 #define I_PICOBENCH_PP_CAT(a, b) I_PICOBENCH_PP_INTERNAL_CAT(a, b)
 #define I_PICOBENCH_PP_INTERNAL_CAT(a, b) a##b
 
 #define PICOBENCH_SUITE(name) \
-    static int I_PICOBENCH_PP_CAT(picobench_suite, __LINE__) = \
+    static int I_PICOBENCH_PP_CAT(picobench_suite, PICOBENCH_UNIQUE_SYM_SUFFIX) = \
     PICOBENCH_NAMESPACE::global_registry::set_bench_suite(name)
 
 #define PICOBENCH(func) \
-    static auto& I_PICOBENCH_PP_CAT(picobench, __LINE__) = \
+    static auto& I_PICOBENCH_PP_CAT(picobench, PICOBENCH_UNIQUE_SYM_SUFFIX) = \
     PICOBENCH_NAMESPACE::global_registry::new_benchmark(#func, func)
 
 #if defined(PICOBENCH_IMPLEMENT_WITH_MAIN)
