@@ -31,7 +31,7 @@
 //                  VERSION HISTORY
 //
 //  2.03 (2023-03-xx) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
-//                    * Fixed shadowing warning
+//                    * Fixed several warnings
 //  2.02 (2023-02-16) * Fixed same-func warning if user data is different
 //                    * Macro PICOBENCH_NAMESPACE to change namespace
 //                    * Changed marking of baseline in human-readable reports
@@ -1019,7 +1019,7 @@ public:
                 rpt_benchmark->data.reserve(state_iterations.size());
                 for (auto d : state_iterations)
                 {
-                    rpt_benchmark->data.push_back({ d, 0, 0ll });
+                    rpt_benchmark->data.push_back({d, 0, 0ll, result_t(0)});
                 }
 
                 for (auto& state : b->_states)
