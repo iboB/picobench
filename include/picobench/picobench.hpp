@@ -30,7 +30,8 @@
 //
 //                  VERSION HISTORY
 //
-//  2.03 (2023-03-20) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
+//  2.03 (2023-03-xx) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
+//                    * Fixed shadowing warning
 //  2.02 (2023-02-16) * Fixed same-func warning if user data is different
 //                    * Macro PICOBENCH_NAMESPACE to change namespace
 //                    * Changed marking of baseline in human-readable reports
@@ -411,11 +412,11 @@ public:
         const char* name;
         std::vector<benchmark> benchmarks; // benchmark view
 
-        const benchmark* find_benchmark(const char* name) const
+        const benchmark* find_benchmark(const char* bname) const
         {
             for (auto& b : benchmarks)
             {
-                if (strcmp(b.name, name) == 0)
+                if (strcmp(b.name, bname) == 0)
                     return &b;
             }
 
