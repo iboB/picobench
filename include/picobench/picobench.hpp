@@ -30,7 +30,7 @@
 //
 //                  VERSION HISTORY
 //
-//  2.03 (2023-03-xx) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
+//  2.03 (2023-03-21) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
 //                    * Fixed several warnings
 //  2.02 (2023-02-16) * Fixed same-func warning if user data is different
 //                    * Macro PICOBENCH_NAMESPACE to change namespace
