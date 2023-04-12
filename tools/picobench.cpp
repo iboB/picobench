@@ -164,7 +164,7 @@ bool parse_bfile(uintptr_t, const char* file)
 }
 
 int main(int argc, char* argv[])
-{    
+{
     if (argc == 1)
     {
         cout << "picobench " PICOBENCH_VERSION_STR "\n";

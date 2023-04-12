@@ -1,4 +1,4 @@
-// picobench v2.03
+// picobench v2.04
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -30,6 +30,8 @@
 //
 //                  VERSION HISTORY
 //
+//  2.04 (2023-04-12) Added options to run specific benchmarks or specific
+//                    suites by name
 //  2.03 (2023-03-21) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
 //                    * Fixed several warnings
 //  2.02 (2023-02-16) * Fixed same-func warning if user data is different
@@ -121,8 +123,8 @@
 #   include <functional>
 #endif
 
-#define PICOBENCH_VERSION 2.02
-#define PICOBENCH_VERSION_STR "2.02"
+#define PICOBENCH_VERSION 2.04
+#define PICOBENCH_VERSION_STR "2.04"
 
 #if defined(PICOBENCH_DEBUG)
 #   include <cassert>
@@ -722,6 +724,10 @@ public:
         : str(text)
         , len(int(strlen(text)))
     {}
+    picostring(const char* text, int len)
+        : str(text)
+        , len(len)
+    {}
 
     const char* str;
     int len = 0;
@@ -1159,6 +1165,15 @@ public:
             _opts.emplace_back("-no-run", "",
                 "Doesn't run benchmarks",
                 &runner::cmd_no_run);
+            _opts.emplace_back("-run-suite=", "<suite>",
+                "Runs only benchmarks from suite",
+                &runner::cmd_run_suite);
+            _opts.emplace_back("-run-only=", "<b1,b2,...>",
+                "Runs only selected benchmarks",
+                &runner::cmd_run_only);
+            _opts.emplace_back("-list", "",
+                "Lists available benchmarks",
+                &runner::cmd_list);
             _opts.emplace_back("-version", "",
                 "Show version info",
                 &runner::cmd_version);
@@ -1317,6 +1332,63 @@ private:
     bool cmd_no_run(const char* line)
     {
         if (*line) return false;
+        _should_run = false;
+        return true;
+    }
+
+    bool cmd_run_suite(const char* line)
+    {
+        auto new_end = std::remove_if(_suites.begin(), _suites.end(), [line](const rsuite& s) {
+            return !s.name || strcmp(s.name, line) != 0;
+        });
+        _suites.erase(new_end, _suites.end());
+        return true;
+    }
+
+    bool cmd_run_only(const char* line)
+    {
+        std::vector<picostring> names;
+
+        auto p = line;
+        while (true)
+        {
+            auto q = strchr(p, ',');
+            if (!q) q = p + strlen(p);
+            names.emplace_back(p, int(q - p));
+            if (!*q) break;
+            p = q + 1;
+        }
+
+        for (auto& s : _suites)
+        {
+            auto new_end = std::remove_if(s.benchmarks.begin(), s.benchmarks.end(), [&names](const std::unique_ptr<benchmark_impl>& b) {
+                auto f = std::find(names.begin(), names.end(), b->name());
+                return f == names.end();
+            });
+            s.benchmarks.erase(new_end, s.benchmarks.end());
+        }
+        return true;
+    }
+
+    bool cmd_list(const char* line)
+    {
+        if (*line) return false;
+        _should_run = false;
+        for (auto& suite : _suites)
+        {
+            if (suite.name)
+            {
+                *_stdout << "  " << suite.name << ":\n";
+            }
+            else
+            {
+                *_stdout << "  <Default suite>:\n";
+            }
+            for (auto& bench : suite.benchmarks)
+            {
+                *_stdout << "    " << bench->name() << "\n";
+            }
+        }
         _should_run = false;
         return true;
     }

@@ -289,6 +289,9 @@ TEST_CASE("[picobench] cmd line")
         " --pb-output=<filename>     Sets output filename or `stdout`\n" \
         " --pb-compare-results       Compare benchmark results\n" \
         " --pb-no-run                Doesn't run benchmarks\n" \
+        " --pb-run-suite=<suite>     Runs only benchmarks from suite\n" \
+        " --pb-run-only=<b1,b2,...>  Runs only selected benchmarks\n" \
+        " --pb-list                  Lists available benchmarks\n" \
         " --pb-version               Show version info\n" \
         " --pb-help                  Prints help\n"
 
