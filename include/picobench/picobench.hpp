@@ -30,8 +30,7 @@
 //
 //                  VERSION HISTORY
 //
-//  2.04 (2023-04-12) Added options to run specific benchmarks or specific
-//                    suites by name
+//  2.04 (2023-04-12) Added CLI args to run specific benchmarks or suites
 //  2.03 (2023-03-21) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
 //                    * Fixed several warnings
 //  2.02 (2023-02-16) * Fixed same-func warning if user data is different
@@ -363,6 +362,7 @@ public:
 #include <memory>
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
 
 #if defined(_WIN32)
 #   define WIN32_LEAN_AND_MEAN
