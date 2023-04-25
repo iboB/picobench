@@ -1,4 +1,4 @@
-// picobench v2.04
+// picobench v2.05
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -30,6 +30,7 @@
 //
 //                  VERSION HISTORY
 //
+//  2.05 (2023-04-26) Fixed MinGW build
 //  2.04 (2023-04-12) Added CLI args to run specific benchmarks or suites
 //  2.03 (2023-03-21) * Added PICOBENCH_UNIQUE_SYM_SUFFIX
 //                    * Fixed several warnings
@@ -122,8 +123,8 @@
 #   include <functional>
 #endif
 
-#define PICOBENCH_VERSION 2.04
-#define PICOBENCH_VERSION_STR "2.04"
+#define PICOBENCH_VERSION 2.05
+#define PICOBENCH_VERSION_STR "2.05"
 
 #if defined(PICOBENCH_DEBUG)
 #   include <cassert>
@@ -1352,7 +1353,7 @@ private:
         auto p = line;
         while (true)
         {
-            auto q = strchr(p, ',');
+            const char* q = strchr(p, ',');
             if (!q) q = p + strlen(p);
             names.emplace_back(p, int(q - p));
             if (!*q) break;
