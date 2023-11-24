@@ -1,17 +1,10 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 include(./get_cpm.cmake)
-CPMAddPackage(
-    NAME doctest-lib
-    VERSION 2.4.8a
-    GITHUB_REPOSITORY iboB/doctest-lib
-)
-CPMAddPackage(gh:iboB/icm@1.3.3)
-find_package(Threads REQUIRED)
-include(${icm_SOURCE_DIR}/icm_testing.cmake)
+CPMAddPackage(gh:iboB/doctest-util@0.1.2)
 
 macro(pb_test test)
-    icm_add_doctest_lib_test(${test} picobench ${ARGN} LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
+    add_doctest_lib_test(${test} picobench ${ARGN})
 endmacro()
 
 pb_test(basic basic.cpp)

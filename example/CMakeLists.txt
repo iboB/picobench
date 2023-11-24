@@ -1,5 +1,3 @@
-find_package(Threads REQUIRED)
-
 macro(pb_example name)
     set(tgt picobench-example-${name})
     add_executable(${tgt} ${ARGN})
