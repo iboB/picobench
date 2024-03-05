@@ -1,7 +1,6 @@
 #include <doctest/doctest.h>
 
 #define PICOBENCH_IMPLEMENT
-#define PICOBENCH_DONT_BIND_TO_ONE_CORE
 #include "picobench_configured.hpp"
 
 #include <string>

@@ -113,7 +113,8 @@
 // for the benchmark. You can have initialization/deinitialization code outside
 // of the loop and it won't be measured.
 //
-#pragma once
+#if !defined(PICOBENCH_HPP_INCLUDED)
+#define PICOBENCH_HPP_INCLUDED
 
 #include <cstdint>
 #include <chrono>
@@ -352,6 +353,8 @@ public:
 #   define PICOBENCH_IMPLEMENT
 #   define PICOBENCH_IMPLEMENT_MAIN
 #endif
+
+#endif // PICOBENCH_HPP_INCLUDED
 
 #if defined(PICOBENCH_IMPLEMENT)
 
