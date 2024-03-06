@@ -1,4 +1,4 @@
-// picobench v2.05
+// picobench v2.07
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -7,7 +7,7 @@
 //
 // MIT License
 //
-// Copyright(c) 2017-2023 Borislav Stanimirov
+// Copyright(c) 2017-2024 Borislav Stanimirov
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
@@ -30,6 +30,10 @@
 //
 //                  VERSION HISTORY
 //
+//  2.07 (2024-03-06) * Text output is now markdown compatible
+//                    * Allow including picobench.hpp before defining
+//                      PICOBENCH_IMPLEMENT
+//  2.06 (2023-11-24) Intenal. This file was not affected
 //  2.05 (2023-04-26) Fixed MinGW build
 //  2.04 (2023-04-12) Added CLI args to run specific benchmarks or suites
 //  2.03 (2023-03-21) * Added PICOBENCH_UNIQUE_SYM_SUFFIX

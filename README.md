@@ -1,3 +1,4 @@
+
 # picobench
 [![Language](https://img.shields.io/badge/language-C++-blue.svg)](https://isocpp.org/) [![Standard](https://img.shields.io/badge/C%2B%2B-11-blue.svg)](https://en.wikipedia.org/wiki/C%2B%2B#Standardization) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
@@ -45,20 +46,18 @@ PICOBENCH(rand_vector_reserve);
 The output of this benchmark might look like this:
 
 ```
-===============================================================================
-    Name (* = baseline)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second
-===============================================================================
-            rand_vector * |       8 |     0.001 |     167 |      - |  5974607.9
-      rand_vector_reserve |       8 |     0.000 |      55 |  0.329 | 18181818.1
-            rand_vector * |      64 |     0.004 |      69 |      - | 14343343.8
-      rand_vector_reserve |      64 |     0.002 |      27 |  0.400 | 35854341.7
-            rand_vector * |     512 |     0.017 |      33 |      - | 30192239.7
-      rand_vector_reserve |     512 |     0.012 |      23 |  0.710 | 42496679.9
-            rand_vector * |    4096 |     0.181 |      44 |      - | 22607850.9
-      rand_vector_reserve |    4096 |     0.095 |      23 |  0.527 | 42891848.9
-            rand_vector * |    8196 |     0.266 |      32 |      - | 30868196.3
-      rand_vector_reserve |    8196 |     0.207 |      25 |  0.778 | 39668749.5
-===============================================================================
+ Name (* = baseline)      |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second
+--------------------------|--------:|----------:|--------:|-------:|----------:
+ rand_vector *            |       8 |     0.001 |     167 |      - |  5974607.9
+ rand_vector_reserve      |       8 |     0.000 |      55 |  0.329 | 18181818.1
+ rand_vector *            |      64 |     0.004 |      69 |      - | 14343343.8
+ rand_vector_reserve      |      64 |     0.002 |      27 |  0.400 | 35854341.7
+ rand_vector *            |     512 |     0.017 |      33 |      - | 30192239.7
+ rand_vector_reserve      |     512 |     0.012 |      23 |  0.710 | 42496679.9
+ rand_vector *            |    4096 |     0.181 |      44 |      - | 22607850.9
+ rand_vector_reserve      |    4096 |     0.095 |      23 |  0.527 | 42891848.9
+ rand_vector *            |    8196 |     0.266 |      32 |      - | 30868196.3
+ rand_vector_reserve      |    8196 |     0.207 |      25 |  0.778 | 39668749.5
 ```
 
 ...which tells us that we see a noticeable performance gain when we use `reserve` but the effect gets less prominent for bigger numbers of elements inserted.
@@ -142,12 +141,10 @@ Instead of `std::cout` you may want to use another `std::ostream` instance of yo
 As mentioned above `report.to_text_concise(ostream)` outputs a report without the iterations breakdown. With the first example of benchmarking adding elements to a `std::vector`, the output would be this:
 
 ```
-===============================================================================
-    Name (* = baseline)   |  ns/op  | Baseline |  Ops/second
-===============================================================================
-            rand_vector * |      36 |        - |  27427782.7
-      rand_vector_reserve |      24 |    0.667 |  40754573.7
-===============================================================================
+ Name (* = baseline)      |  ns/op  | Baseline |  Ops/second
+--------------------------|--------:|---------:|-----------:
+ rand_vector *            |      36 |        - |  27427782.7
+ rand_vector_reserve      |      24 |    0.667 |  40754573.7
 ```
 
 Note that in this case the information that the effect of using `reserve` gets less prominent with more elements is lost.
@@ -178,9 +175,9 @@ You can set a result for a benchmark using `state::set_result`. Here is an examp
 void my_benchmark(picobench::state& s)
 {
     int sum = 0;
-    for (auto i : s)
+    for (int i : s)
     {
-        sum += myfunc(*i);
+        sum += myfunc(i);
     }
     s.set_result(sum);
 }
@@ -286,4 +283,4 @@ This software is distributed under the MIT Software License.
 
 See accompanying file LICENSE.txt or copy [here](https://opensource.org/licenses/MIT).
 
-Copyright &copy; 2017-2023 [Borislav Stanimirov](http://github.com/iboB)
+Copyright &copy; 2017-2024 [Borislav Stanimirov](http://github.com/iboB)
