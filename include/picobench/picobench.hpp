@@ -462,13 +462,13 @@ public:
         {
             if (suite.name)
             {
-                out << suite.name << ":\n";
+                out << "## " << suite.name << ":\n";
             }
 
-            line(out);
+            out.put('\n');
             out <<
                 "    Name (* = baseline)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n";
-            line(out);
+            out.put('\n');
 
             auto problem_space_view = get_problem_space_view(suite);
             for (auto& ps : problem_space_view)
@@ -535,7 +535,7 @@ public:
                     out << setw(11) << fixed << setprecision(1) << ops_per_sec << "\n";
                 }
             }
-            line(out);
+            out.put('\n');
         }
     }
 
@@ -546,15 +546,13 @@ public:
         {
             if (suite.name)
             {
-                out << suite.name << ":\n";
+                out << "## " << suite.name << ":\n";
             }
 
-            line(out);
-
+            out.put('\n');
             out <<
                 "    Name (* = baseline)   |  ns/op  | Baseline |  Ops/second\n";
-
-            line(out);
+            out.put('\n');
 
             const benchmark* baseline = nullptr;
             for (auto& bm : suite.benchmarks)
@@ -611,7 +609,7 @@ public:
                 out << setw(12) << fixed << setprecision(1) << ops_per_sec << "\n";
             }
 
-            line(out);
+            out.put('\n');
         }
     }
 
@@ -697,12 +695,6 @@ public:
     }
 
 private:
-
-    static void line(std::ostream& out)
-    {
-        for (int i = 0; i < 79; ++i) out.put('=');
-        out.put('\n');
-    }
 };
 
 class benchmark_impl : public benchmark
@@ -771,7 +763,7 @@ enum class report_output_format
 {
     text,
     concise_text,
-    csv
+    csv,
 };
 
 #if !defined(PICOBENCH_DEFAULT_ITERATIONS)
