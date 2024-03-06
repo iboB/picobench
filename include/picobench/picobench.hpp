@@ -467,8 +467,9 @@ public:
 
             out.put('\n');
             out <<
-                "    Name (* = baseline)   |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n";
-            out.put('\n');
+                " Name (* = baseline)      |   Dim   |  Total ms |  ns/op  |Baseline| Ops/second\n";
+            out <<
+                "--------------------------|--------:|----------:|--------:|-------:|----------:\n";
 
             auto problem_space_view = get_problem_space_view(suite);
             for (auto& ps : problem_space_view)
@@ -485,13 +486,15 @@ public:
 
                 for (auto& bm : ps.second)
                 {
+                    out << ' ' << bm.name;
+                    auto pad = 24 - int(strlen(bm.name));
                     if (bm.is_baseline)
                     {
-                        out << setw(23) << bm.name << " *";
+                        out << " *";
+                        pad -= 2;
                     }
-                    else
-                    {
-                        out << setw(25) << bm.name;
+                    for (int i = 0; i < pad; ++i) {
+                        out.put(' ');
                     }
 
                     out << " |"
@@ -551,8 +554,9 @@ public:
 
             out.put('\n');
             out <<
-                "    Name (* = baseline)   |  ns/op  | Baseline |  Ops/second\n";
-            out.put('\n');
+                " Name (* = baseline)      |  ns/op  | Baseline |  Ops/second\n";
+            out <<
+                "--------------------------|--------:|---------:|-----------:\n";
 
             const benchmark* baseline = nullptr;
             for (auto& bm : suite.benchmarks)
@@ -575,13 +579,15 @@ public:
 
             for (auto& bm : suite.benchmarks)
             {
+                out << ' ' << bm.name;
+                auto pad = 24 - int(strlen(bm.name));
                 if (bm.is_baseline)
                 {
-                    out << setw(23) << bm.name << " *";
+                    out << " *";
+                    pad -= 2;
                 }
-                else
-                {
-                    out << setw(25) << bm.name;
+                for (int i = 0; i < pad; ++i) {
+                    out.put(' ');
                 }
 
                 int64_t total_time = 0;
