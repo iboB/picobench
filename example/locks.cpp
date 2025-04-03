@@ -7,7 +7,6 @@
 #include <mutex>
 #include <atomic>
 #include <functional>
-#include <immintrin.h>
 
 volatile int sum;
 
@@ -57,15 +56,19 @@ struct spinlock
 };
 
 inline void noop() {}
-inline void pause() { _mm_pause(); }
 
 using noop_spin = spinlock<noop>;
-using pause_spin = spinlock<pause>;
 using yield_spin = spinlock<std::this_thread::yield>;
 
 using namespace std;
 
 PICOBENCH(bench<mutex>);
 PICOBENCH(bench<noop_spin>);
-PICOBENCH(bench<pause_spin>);
 PICOBENCH(bench<yield_spin>);
+
+#if defined(__X86_64__) || defined(__x86_64) || defined(_M_X64)
+#include <immintrin.h>
+inline void pause() { _mm_pause(); }
+using pause_spin = spinlock<pause>;
+PICOBENCH(bench<pause_spin>);
+#endif
