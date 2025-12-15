@@ -1,4 +1,4 @@
-// picobench v2.09
+// picobench v2.8.0
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -30,7 +30,8 @@
 //
 //                  VERSION HISTORY
 //
-//  2.08 (2025-xx-xx) TBD
+//  2.8.0 (2025-12-15) Switch to SemVer to appease certain package managers
+//
 //  2.08 (2025-04-04) Internal. This file was not affected
 //  2.07 (2024-03-06) * Text output is now markdown compatible
 //                    * Allow including picobench.hpp before defining
@@ -130,8 +131,8 @@
 #   include <functional>
 #endif
 
-#define PICOBENCH_VERSION 2.09
-#define PICOBENCH_VERSION_STR "2.09"
+#define PICOBENCH_VERSION 2.8.0
+#define PICOBENCH_VERSION_STR "2.8.0"
 
 #if defined(PICOBENCH_DEBUG)
 #   include <cassert>
