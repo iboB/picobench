@@ -7,7 +7,7 @@
 //
 // MIT License
 //
-// Copyright(c) 2017-2025 Borislav Stanimirov
+// Copyright(c) 2017-2026 Borislav Stanimirov
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files(the "Software"), to deal
