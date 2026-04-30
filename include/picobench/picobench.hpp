@@ -31,6 +31,8 @@
 //                  VERSION HISTORY
 //
 //  2.9.0 (2026-04-30) * Completely drop binding benchmarks to a single core
+//                     * Drop custom Windows clock and just use
+//                       std::high_resolution_clock everywhere
 //  2.8.0 (2025-12-15) Switch to SemVer to appease certain package managers
 //
 //  2.08 (2025-04-04) Internal. This file was not affected
@@ -157,7 +159,7 @@
 namespace PICOBENCH_NAMESPACE
 {
 
-#if defined(_MSC_VER) || defined(__MINGW32__) || defined(PICOBENCH_TEST)
+#if defined(PICOBENCH_TEST)
 struct high_res_clock
 {
     typedef long long rep;
@@ -375,11 +377,6 @@ public:
 #include <cstring>
 #include <cstdlib>
 #include <algorithm>
-
-#if defined(_WIN32)
-#   define WIN32_LEAN_AND_MEAN
-#   include <Windows.h>
-#endif
 
 namespace PICOBENCH_NAMESPACE
 {
@@ -956,28 +953,6 @@ public:
             b->_istate = b->_states.begin();
         }
 
-#if !defined(PICOBENCH_DONT_BIND_TO_ONE_CORE)
-        // set thread affinity to first cpu
-        // so the high resolution clock doesn't miss cycles
-        {
-#if defined(_WIN32)
-        SetThreadAffinityMask(GetCurrentThread(), 1);
-#elif defined(__APPLE__)
-        thread_affinity_policy_data_t policy = {0};
-        thread_policy_set(
-            pthread_mach_thread_np(pthread_self()),
-            THREAD_AFFINITY_POLICY,
-            (thread_policy_t)&policy, 1);
-#else
-        cpu_set_t cpuset;
-        CPU_ZERO(&cpuset);
-        CPU_SET(0, &cpuset);
-
-        sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
-#endif
-        }
-#endif
-
         // we run a random benchmark from it incrementing _istate for each
         // when _istate reaches _states.end(), we erase the benchmark
         // when the vector becomes empty, we're done
@@ -1490,22 +1465,6 @@ int global_registry::set_bench_suite(const char* name)
     return 0;
 }
 
-#if (defined(_MSC_VER) || defined(__MINGW32__)) && !defined(PICOBENCH_TEST)
-
-static const long long high_res_clock_freq = []() -> long long
-{
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-    return frequency.QuadPart;
-}();
-
-high_res_clock::time_point high_res_clock::now()
-{
-    LARGE_INTEGER t;
-    QueryPerformanceCounter(&t);
-    return time_point(duration((t.QuadPart * rep(period::den)) / high_res_clock_freq));
-}
-#endif
 }
 
 #endif
