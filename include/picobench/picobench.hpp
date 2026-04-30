@@ -1,4 +1,4 @@
-// picobench v2.8.0
+// picobench v2.9.0
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -30,6 +30,7 @@
 //
 //                  VERSION HISTORY
 //
+//  2.9.0 (2026-04-30) * Completely drop binding benchmarks to a single core
 //  2.8.0 (2025-12-15) Switch to SemVer to appease certain package managers
 //
 //  2.08 (2025-04-04) Internal. This file was not affected
@@ -131,8 +132,8 @@
 #   include <functional>
 #endif
 
-#define PICOBENCH_VERSION 2.8.0
-#define PICOBENCH_VERSION_STR "2.8.0"
+#define PICOBENCH_VERSION 2.9.0
+#define PICOBENCH_VERSION_STR "2.9.0"
 
 #if defined(PICOBENCH_DEBUG)
 #   include <cassert>
@@ -378,14 +379,6 @@ public:
 #if defined(_WIN32)
 #   define WIN32_LEAN_AND_MEAN
 #   include <Windows.h>
-#else
-#   if !defined(PICOBENCH_DONT_BIND_TO_ONE_CORE)
-#       if defined(__APPLE__)
-#           include <mach/mach.h>
-#       else
-#           include <sched.h>
-#       endif
-#   endif
 #endif
 
 namespace PICOBENCH_NAMESPACE
