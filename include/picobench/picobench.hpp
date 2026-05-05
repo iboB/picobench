@@ -134,7 +134,7 @@
 #   include <functional>
 #endif
 
-#define PICOBENCH_VERSION 2.9.0
+#define PICOBENCH_VERSION 20900
 #define PICOBENCH_VERSION_STR "2.9.0"
 
 #if defined(PICOBENCH_DEBUG)
