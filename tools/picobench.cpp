@@ -105,7 +105,7 @@ static int64_t spawn_time;
 
 void bench_proc(state& s)
 {
-    const char* cmd = benchmarks[s.user_data()].cmd.c_str();
+    const char* cmd = benchmarks[s.benchmark_user_data()].cmd.c_str();
     for (auto _ : s)
     {
         exec(cmd);

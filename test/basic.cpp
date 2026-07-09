@@ -59,14 +59,15 @@ PICOBENCH_SUITE("test b");
 
 static void b_a(picobench::state& s)
 {
-    CHECK(s.user_data() == 9088);
+    CHECK(s.benchmark_user_data() == 9088);
+    CHECK(s.input_data() == s.iterations() / 10);
     for (auto _ : s)
     {
         test::this_thread_sleep_for_ns(75);
     }
 }
 PICOBENCH(b_a)
-.iterations({20, 30, 50})
+.inputs({{20, 2}, {30, 3}, {50, 5}})
 .user_data(9088);
 
 map<int, int> b_b_samples;
@@ -130,9 +131,10 @@ TEST_CASE("[picobench] picostring")
 
 TEST_CASE("[picobench] state")
 {
-    state s0(3);
+    state s0({3, 0});
     CHECK(s0.iterations() == 3);
-    CHECK(s0.user_data() == 0);
+    CHECK(s0.input_data() == 0);
+    CHECK(s0.benchmark_user_data() == 0);
 
     int i = 0;
     for (auto _ : s0)
@@ -145,9 +147,10 @@ TEST_CASE("[picobench] state")
     s0.add_custom_duration(5);
     CHECK(s0.duration_ns() == 8);
 
-    state s(2, 123);
+    state s({2, 15}, 123);
     CHECK(s.iterations() == 2);
-    CHECK(s.user_data() == 123);
+    CHECK(s.input_data() == 15);
+    CHECK(s.benchmark_user_data() == 123);
 
     i = 0;
     for (auto it = s.begin(); it != s.end(); ++it)
@@ -159,7 +162,7 @@ TEST_CASE("[picobench] state")
     CHECK(s.duration_ns() == 4);
 }
 
-const vector<int> default_iters = { 8, 64, 512, 4096, 8192 };
+const vector<state::input> default_inputs = { {8, 0}, {64, 0}, {512, 0}, {4096, 0}, {8192, 0} };
 const int default_samples = 2;
 
 TEST_CASE("[picobench] cmd line")
@@ -170,7 +173,7 @@ TEST_CASE("[picobench] cmd line")
         CHECK(b);
         CHECK(r.should_run());
         CHECK(r.error() == 0);
-        CHECK(r.default_state_iterations() == default_iters);
+        CHECK(r.default_state_inputs() == default_inputs);
         CHECK(r.default_samples() == default_samples);
         CHECK(!r.preferred_output_filename());
         CHECK(r.preferred_output_format() == report_output_format::text);
@@ -199,7 +202,7 @@ TEST_CASE("[picobench] cmd line")
         CHECK(!r.should_run());
         CHECK(r.error() == 0);
         CHECK(r.default_samples() == 54);
-        CHECK(r.default_state_iterations() == vector<int>({ 1, 2, 3 }));
+        CHECK(r.default_state_inputs() == vector<state::input>({ {1, 0}, {2, 0}, {3, 0} }));
         CHECK(!r.preferred_output_filename());
         CHECK(r.preferred_output_format() == report_output_format::concise_text);
         CHECK(!r.compare_results_across_benchmarks());
@@ -215,7 +218,7 @@ TEST_CASE("[picobench] cmd line")
         CHECK(!r.should_run());
         CHECK(r.error() == 0);
         CHECK(r.default_samples() == 54);
-        CHECK(r.default_state_iterations() == vector<int>({ 1000, 2000, 3000 }));
+        CHECK(r.default_state_inputs() == vector<state::input>({ {1000, 0}, {2000, 0}, {3000, 0} }));
         CHECK(strcmp(r.preferred_output_filename(), "foo.csv") == 0);
         CHECK(r.preferred_output_format() == report_output_format::csv);
         CHECK(r.compare_results_across_benchmarks());
@@ -248,7 +251,7 @@ TEST_CASE("[picobench] cmd line")
         CHECK(!b);
         CHECK(!r.should_run());
         CHECK(r.error() == error_bad_cmd_line_argument);
-        CHECK(r.default_state_iterations() == default_iters);
+        CHECK(r.default_state_inputs() == default_inputs);
     }
 
     {
@@ -363,7 +366,7 @@ TEST_CASE("[picobench] cmd line")
 TEST_CASE("[picobench] test")
 {
     runner r;
-    CHECK(r.default_state_iterations() == default_iters);
+    CHECK(r.default_state_inputs() == default_inputs);
     CHECK(r.default_samples() == default_samples);
 
     r.set_compare_results_across_benchmarks(true);
@@ -396,12 +399,12 @@ TEST_CASE("[picobench] test")
     CHECK(a.find_benchmark("a_a") == &aa);
     CHECK(strcmp(aa.name, "a_a") == 0);
     CHECK(aa.is_baseline);
-    CHECK(aa.data.size() == r.default_state_iterations().size());
+    CHECK(aa.data.size() == r.default_state_inputs().size());
 
     for (size_t i = 0; i<aa.data.size(); ++i)
     {
         auto& d = aa.data[i];
-        CHECK(d.dimension == r.default_state_iterations()[i]);
+        CHECK(d.dimension == r.default_state_inputs()[i].iterations);
         CHECK(d.samples == r.default_samples());
         CHECK(d.total_time_ns == d.dimension * 10);
     }
@@ -410,19 +413,19 @@ TEST_CASE("[picobench] test")
     CHECK(a.find_benchmark("a_b") == &ab);
     CHECK(strcmp(ab.name, "a_b") == 0);
     CHECK(!ab.is_baseline);
-    CHECK(ab.data.size() == r.default_state_iterations().size());
+    CHECK(ab.data.size() == r.default_state_inputs().size());
 
     for (size_t i = 0; i<ab.data.size(); ++i)
     {
         auto& d = ab.data[i];
-        CHECK(d.dimension == r.default_state_iterations()[i]);
+        CHECK(d.dimension == r.default_state_inputs()[i].iterations);
         CHECK(d.samples == r.default_samples());
         CHECK(d.total_time_ns == d.dimension * 11);
     }
     size_t j = 0;
     for (auto& elem : a_b_samples)
     {
-        CHECK(elem.first == default_iters[j]);
+        CHECK(elem.first == default_inputs[j].iterations);
         CHECK(elem.second == r.default_samples());
         ++j;
     }
@@ -431,12 +434,12 @@ TEST_CASE("[picobench] test")
     CHECK(a.find_benchmark("a_c") == &ac);
     CHECK(strcmp(ac.name, "a_c") == 0);
     CHECK(!ac.is_baseline);
-    CHECK(ac.data.size() == r.default_state_iterations().size());
+    CHECK(ac.data.size() == r.default_state_inputs().size());
 
     for (size_t i = 0; i<ac.data.size(); ++i)
     {
         auto& d = ac.data[i];
-        CHECK(d.dimension == r.default_state_iterations()[i]);
+        CHECK(d.dimension == r.default_state_inputs()[i].iterations);
         CHECK(d.samples == r.default_samples());
         CHECK(d.total_time_ns == d.dimension * 20);
     }

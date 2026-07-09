@@ -1,6 +1,6 @@
 #define PICOBENCH_DEBUG
 #define PICOBENCH_IMPLEMENT_WITH_MAIN
-#define PICOBENCH_DEFAULT_ITERATIONS {1000, 10000, 100000, 1000000}
+#define PICOBENCH_DEFAULT_INPUTS { {1000, 0}, {10000, 0}, {100000, 0}, {1000000, 0} }
 #include "picobench/picobench.hpp"
 
 #include <future>
