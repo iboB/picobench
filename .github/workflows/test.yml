@@ -16,15 +16,15 @@ jobs:
         type: [Debug, RelWithDebInfo]
     steps:
       - name: Clone
-        uses: actions/checkout@v3
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v4
+        uses: actions/checkout@v7
       - name: VC Vars
         # Setup vcvars on Windows
         # MSVC's address sanitizer attaches dependencies to several DLLs which are not in PATH
         # vcvars will add them to PATH and allow msvc asan executables to run
         if: matrix.os == 'windows-latest'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x64
       - name: Configure
         run: cmake . -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DSAN_ADDR=1
       - name: Build
