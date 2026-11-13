@@ -40,3 +40,7 @@ endif()
 if(PICOBENCH_BUILD_EXAMPLES)
     add_subdirectory(example)
 endif()
+
+if(${dev_mode})
+    add_subdirectory(sandbox)
+endif()
