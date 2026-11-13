@@ -3,7 +3,11 @@
 #
 cmake_minimum_required(VERSION 3.10)
 
-project(picobench)
+project(picobench
+    VERSION 2.10.0
+    DESCRIPTION "A micro-benchmarking framework for C++"
+    LANGUAGES CXX
+)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     # dev_mode is used below to make life easier for developers
