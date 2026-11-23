@@ -30,7 +30,10 @@
 //
 //                  VERSION HISTORY
 //
-//  2.11.0 (2026-xx-xx)
+//  2.11.0 (2026-xx-xx) * Add iterate type for range-based for loops to avoid
+//                        unused variable warnings
+//                      * Add START/STOP_INSTRUMENTATION macros to allow for
+//                        custom benchmark instrumentation (ie cachegrind)
 //  2.10.0 (2026-07-09) Introduce state inputs
 //                      * PICOBENCH_DEFAULT_INPUTS macro to set default inputs
 //                      * state::input struct to hold input data
@@ -158,6 +161,13 @@
 #   define PICOBENCH_INLINE  inline
 #endif
 
+#if !defined(PICOBENCH_START_INSTRUMENTATION)
+#define PICOBENCH_START_INSTRUMENTATION (void)(0)
+#endif
+#if !defined(PICOBENCH_STOP_INSTRUMENTATION)
+#define PICOBENCH_STOP_INSTRUMENTATION (void)(0)
+#endif
+
 #if !defined(PICOBENCH_NAMESPACE)
 #   define PICOBENCH_NAMESPACE picobench
 #endif
@@ -222,11 +232,13 @@ public:
     void start_timer()
     {
         _start = high_res_clock::now();
+        PICOBENCH_START_INSTRUMENTATION;
     }
 
     PICOBENCH_INLINE
     void stop_timer()
     {
+        PICOBENCH_STOP_INSTRUMENTATION;
         auto duration = high_res_clock::now() - _start;
         _duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
     }

@@ -9,6 +9,7 @@
 using namespace std;
 
 std::map<int, int> g_num_samples;
+int global_start_counter, global_stop_counter;
 
 const pb::report::suite& find_suite(const char* s, const pb::report& r)
 {
@@ -128,5 +129,16 @@ TEST_CASE("[picobench] multi cpp test")
         CHECK(d.samples == samples);
         CHECK(d.total_time_ns == d.dimension * 25);
     }
+
+    auto total_benchmarks = 0;
+    for (auto& s : report.suites) {
+        for (auto& b : s.benchmarks) {
+            for (auto& d : b.data) {
+                total_benchmarks += d.samples;
+            }
+        }
+    }
+    CHECK(global_start_counter == total_benchmarks);
+    CHECK(global_stop_counter == global_start_counter);
 }
 
