@@ -1,4 +1,4 @@
-// picobench v2.10.0
+// picobench v2.11.0
 // https://github.com/iboB/picobench
 //
 // A micro microbenchmarking library in a single header file
@@ -30,10 +30,12 @@
 //
 //                  VERSION HISTORY
 //
-//  2.9.1 (2026-07-09) Introduce state inputs
-//                     * PICOBENCH_DEFAULT_INPUTS macro to set default inputs
-//                     * state::input struct to hold input data
-//                     * PICOBENCH_DEFAULT_ITERATIONS macro triggers an error
+//  2.11.0 (2026-xx-xx)
+//  2.10.0 (2026-07-09) Introduce state inputs
+//                      * PICOBENCH_DEFAULT_INPUTS macro to set default inputs
+//                      * state::input struct to hold input data
+//                      * PICOBENCH_DEFAULT_ITERATIONS macro triggers an error
+//
 //  2.9.0 (2026-04-30) * Completely drop binding benchmarks to a single core
 //                     * Drop custom Windows clock and just use
 //                       std::high_resolution_clock everywhere
@@ -138,8 +140,8 @@
 #   include <functional>
 #endif
 
-#define PICOBENCH_VERSION 21000
-#define PICOBENCH_VERSION_STR "2.10.0"
+#define PICOBENCH_VERSION 21100
+#define PICOBENCH_VERSION_STR "2.11.0"
 
 #if defined(PICOBENCH_DEBUG)
 #   include <cassert>
