@@ -3,21 +3,22 @@
 #
 cmake_minimum_required(VERSION 3.10)
 
-project(picobench
-    VERSION 2.10.0
-    DESCRIPTION "A micro-benchmarking framework for C++"
-    LANGUAGES CXX
-)
-
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     # dev_mode is used below to make life easier for developers
     # it enables some configurations and the defaults for building tests and
     # examples which typically wouldn't be built if xmem is a subdirectory of
     # another project
     set(dev_mode ON)
+    cmake_minimum_required(VERSION 3.15)
 else()
     set(dev_mode OFF)
 endif()
+
+project(picobench
+    VERSION 2.10.0
+    DESCRIPTION "A micro-benchmarking framework for C++"
+    LANGUAGES CXX
+)
 
 option(PICOBENCH_BUILD_TOOLS "picobench: build tools" ${dev_mode})
 option(PICOBENCH_BUILD_TESTS "picobench: build tests" ${dev_mode})
