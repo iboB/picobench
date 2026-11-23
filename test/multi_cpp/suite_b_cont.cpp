@@ -8,7 +8,7 @@ PICOBENCH_SUITE("suite b");
 static void b_a(pb::state& s)
 {
     ++g_num_samples[s.iterations()];
-    for (auto _ : s)
+    for (pb::iterate _ : s)
     {
         pb::test::this_thread_sleep_for_ns(20);
     }

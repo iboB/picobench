@@ -15,7 +15,7 @@ PICOBENCH_SUITE("test a");
 
 static void a_a(picobench::state& s)
 {
-    for (auto _ : s)
+    for (picobench::iterate _ : s)
     {
         test::this_thread_sleep_for_ns(10);
     }
@@ -34,7 +34,7 @@ static void a_b(picobench::state& s)
     }
 
     ++a_b_samples[s.iterations()];
-    for (auto _ : s)
+    for (picobench::iterate _ : s)
     {
         test::this_thread_sleep_for_ns(time);
     }
@@ -61,13 +61,13 @@ static void b_a(picobench::state& s)
 {
     CHECK(s.benchmark_user_data() == 9088);
     CHECK(s.input_data() == s.iterations() / 10);
-    for (auto _ : s)
+    for (picobench::iterate _ : s)
     {
         test::this_thread_sleep_for_ns(75);
     }
 }
 PICOBENCH(b_a)
-.inputs({{20, 2}, {30, 3}, {50, 5}})
+.inputs({ {20, 2}, {30, 3}, {50, 5} })
 .user_data(9088);
 
 map<int, int> b_b_samples;
@@ -89,7 +89,7 @@ PICOBENCH(b_b)
 .baseline()
 .label("something else")
 .samples(15)
-.iterations({10, 20, 30});
+.iterations({ 10, 20, 30 });
 
 const picobench::report::suite& find_suite(const char* s, const picobench::report& r)
 {
@@ -102,7 +102,7 @@ const picobench::report::suite& find_suite(const char* s, const picobench::repor
 
 TEST_CASE("[picobench] test utils")
 {
-    const char* ar[] = {"test", "123", "asdf"};
+    const char* ar[] = { "test", "123", "asdf" };
     CHECK(cntof(ar) == 3);
 
     auto start = high_res_clock::now();
@@ -131,15 +131,15 @@ TEST_CASE("[picobench] picostring")
 
 TEST_CASE("[picobench] state")
 {
-    state s0({3, 0});
+    state s0({ 3, 0 });
     CHECK(s0.iterations() == 3);
     CHECK(s0.input_data() == 0);
     CHECK(s0.benchmark_user_data() == 0);
 
     int i = 0;
-    for (auto _ : s0)
+    for (auto si : s0)
     {
-        CHECK(_ == i);
+        CHECK(si == i);
         ++i;
         test::this_thread_sleep_for_ns(1);
     }

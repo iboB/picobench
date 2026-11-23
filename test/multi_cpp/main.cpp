@@ -33,12 +33,14 @@ TEST_CASE("[picobench] multi cpp test")
     CHECK(report.suites.size() == 2);
 
     CHECK(g_num_samples.size() == iters.size());
-    size_t i = 0;
-    for (auto& elem : g_num_samples)
     {
-        CHECK(elem.first == iters[i]);
-        CHECK(elem.second == samples);
-        ++i;
+        size_t i = 0;
+        for (auto& elem : g_num_samples)
+        {
+            CHECK(elem.first == iters[i]);
+            CHECK(elem.second == samples);
+            ++i;
+        }
     }
 
     auto& a = find_suite("suite a", report);

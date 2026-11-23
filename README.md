@@ -23,7 +23,7 @@ Here's the complete code of a microbenchmark which compares adding elements to a
 static void rand_vector(picobench::state& s)
 {
     std::vector<int> v;
-    for (auto _ : s)
+    for (picobench::iterate _ : s)
     {
         v.push_back(rand());
     }
@@ -35,7 +35,7 @@ static void rand_vector_reserve(picobench::state& s)
 {
     std::vector<int> v;
     v.reserve(s.iterations());
-    for (auto _ : s)
+    for (picobench::iterate _ : s)
     {
         v.push_back(rand());
     }
@@ -194,7 +194,7 @@ By default results are compared by simple equality, but you can introduce you ow
 void my_benchmark(picobench::state& s)
 {
     my_vector2 result;
-    for (auto _ : s)
+    for (picobench::iterate _ : s)
         result += my_vector_op();
     s.set_result(
         // new to preserve value past this function

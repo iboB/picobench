@@ -100,8 +100,8 @@
 // static void benchmark_my_function(picobench::state& state)
 // {
 //     // use the state in a range-based for loop to call your code
-//     for (auto _ : state)
-//         my_function();
+//     for (int i : state)
+//         my_function(i);
 // }
 // // create a picobench with your benchmarking code
 // PICOBENCH(benchmark_my_function);
@@ -316,6 +316,15 @@ public:
     }
 private:
     state& _state;
+};
+
+// use in range-based for loops to iterate a number of times without using counter
+// this avoids the unused variable warning
+// for (picobench::iterate _ : state) { ... }
+struct iterate {
+    iterate() noexcept = default;
+    iterate(int) noexcept {}
+    void operator=(int) const noexcept {}
 };
 
 #if defined(PICOBENCH_STD_FUNCTION_BENCHMARKS)

@@ -106,7 +106,7 @@ static int64_t spawn_time;
 void bench_proc(state& s)
 {
     const char* cmd = benchmarks[s.benchmark_user_data()].cmd.c_str();
-    for (auto _ : s)
+    for (picobench::iterate _ : s)
     {
         exec(cmd);
     }

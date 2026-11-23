@@ -4,7 +4,7 @@ PICOBENCH_SUITE("suite b");
 
 static void a_a(pb::state& s)
 {
-    for (auto _ : s)
+    for (pb::iterate _ : s)
     {
         pb::test::this_thread_sleep_for_ns(15);
     }
