@@ -336,6 +336,7 @@ private:
 struct iterate {
     iterate() noexcept = default;
     iterate(int) noexcept {}
+    ~iterate() noexcept {}
     void operator=(int) const noexcept {}
 };
 
