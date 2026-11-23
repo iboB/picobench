@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 include(./get_cpm.cmake)
-CPMAddPackage(gh:iboB/doctest-util@0.1.2)
+CPMAddPackage(gh:iboB/doctest-util@0.2.1)
 
 macro(pb_test test)
     add_doctest_lib_test(${test} picobench ${ARGN})
