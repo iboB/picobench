@@ -131,9 +131,9 @@ TEST_CASE("[picobench] multi cpp test")
     }
 
     auto total_benchmarks = 0;
-    for (auto& s : report.suites) {
-        for (auto& b : s.benchmarks) {
-            for (auto& d : b.data) {
+    for (auto& ss : report.suites) {
+        for (auto& bs : ss.benchmarks) {
+            for (auto& d : bs.data) {
                 total_benchmarks += d.samples;
             }
         }
